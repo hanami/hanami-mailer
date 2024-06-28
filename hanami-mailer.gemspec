@@ -23,7 +23,7 @@ Gem::Specification.new do |spec|
   spec.required_ruby_version = ">= 3.0"
 
   spec.add_dependency "hanami-utils", "~> 2.0.alpha"
-  spec.add_dependency "tilt",         "~> 2.0", ">= 2.0.1"
+  spec.add_dependency "tilt",         "2.4.0"
   spec.add_dependency "mail",         "~> 2.7"
 
   # FIXME: remove when https://github.com/mikel/mail/pull/1439 gets merged AND a new version of `mail` gets released
