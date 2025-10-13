@@ -20,16 +20,12 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
   spec.metadata["rubygems_mfa_required"] = "true"
-  spec.required_ruby_version = ">= 3.0"
+  spec.required_ruby_version = ">= 3.1"
 
-  spec.add_dependency "hanami-utils", "~> 2.0.alpha"
+  spec.add_dependency "hanami-utils", ">= 2.3.0.beta1"
   spec.add_dependency "tilt",         "~> 2.0", ">= 2.0.1"
-  spec.add_dependency "mail",         "~> 2.7"
-
-  # FIXME: remove when https://github.com/mikel/mail/pull/1439 gets merged AND a new version of `mail` gets released
-  spec.add_dependency "net-smtp", "~> 0.3"
-  spec.add_dependency "net-pop",  "~> 0.1"
-  spec.add_dependency "net-imap", "~> 0.2"
+  spec.add_dependency "mail",         "~> 2.8.1"
+  spec.add_dependency "zeitwerk",     "~> 2.6"
 
   spec.add_development_dependency "bundler", ">= 1.6", "< 3"
   spec.add_development_dependency "rake",    "~> 13"
