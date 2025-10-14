@@ -15,12 +15,13 @@ module Hanami
   class Mailer
     def self.gem_loader
       @gem_loader ||= Zeitwerk::Loader.new.tap do |loader|
-        root =  File.expand_path("..", __dir__)
+        root = File.expand_path("..", __dir__)
         loader.tag = "hanami-mailer"
         loader.push_dir(root)
         loader.ignore(
+          "#{root}/hanami-mailer.rb",
           "#{root}/hanami/mailer.rb",
-          "#{root}/hanami/mailer/version.rb",
+          "#{root}/hanami/mailer/version.rb"
         )
       end
     end
