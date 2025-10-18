@@ -10,22 +10,6 @@ module Hanami
     class Config
       include Dry::Configurable
 
-      DEFAULT_TEMPLATES_PATH = "."
-      DEFAULT_CHARSET = "UTF-8"
-
-      setting :templates_path, default: DEFAULT_TEMPLATES_PATH
-      setting :charset, default: DEFAULT_CHARSET
-      setting :delivery_method, default: :smtp
-      setting :delivery_options, default: {}
-
-      def initialize(**values)
-        super()
-
-        config.update(values.select { |k| _settings.key?(k) })
-
-        yield(config) if block_given?
-      end
-
       private
 
       def method_missing(name, ...)
