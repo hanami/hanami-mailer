@@ -10,9 +10,6 @@ Mail for Ruby applications.
 
 [![Gem Version](https://badge.fury.io/rb/hanami-mailer.svg)](https://badge.fury.io/rb/hanami-mailer)
 [![CI](https://github.com/hanami/mailer/workflows/ci/badge.svg?branch=main)](https://github.com/hanami/mailer/actions?query=workflow%3Aci+branch%3Amain)
-[![Test Coverage](https://codecov.io/gh/hanami/mailer/branch/main/graph/badge.svg)](https://codecov.io/gh/hanami/mailer)
-[![Depfu](https://badges.depfu.com/badges/739c6e10eaf20d3ba4240d00828284db/overview.svg)](https://depfu.com/github/hanami/mailer?project=Bundler)
-[![Inline Docs](http://inch-ci.org/github/hanami/mailer.svg)](http://inch-ci.org/github/hanami/mailer)
 
 ## Contact
 
@@ -22,10 +19,6 @@ Mail for Ruby applications.
 * Bugs/Issues: https://github.com/hanami/mailer/issues
 * Support: http://stackoverflow.com/questions/tagged/hanami
 * Chat: http://chat.hanamirb.org
-
-## Rubies
-
-__Hanami::Mailer__ supports Ruby (MRI) 3.0+
 
 ## Installation
 
