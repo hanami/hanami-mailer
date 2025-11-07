@@ -28,6 +28,10 @@ module Hanami
       def render(scope, locals = {})
         @_template.render(scope.dup, locals)
       end
+
+      def render_layout(content)
+        @_template.render { content }
+      end
     end
   end
 end

@@ -524,7 +524,11 @@ module Hanami
       #     layout 'mailer_layout'
       #   end
       def layout(value)
-        @template = value
+        @layout = value
+      end
+
+      def layout_name
+        @layout
       end
 
       # Before callback for email delivery

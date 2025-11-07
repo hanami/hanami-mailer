@@ -276,6 +276,17 @@ module Hanami
         mailers.fetch(mailer) { raise UnknownMailerError.new(mailer) }[format]
       end
 
+      # @param mailer [Hanami::Mailer] a mailer
+      # @param format [Symbol] the wanted format (eg. `:html`, `:txt`)
+      #
+      # @since next
+      # @api unstable
+      def layout(mailer, format)
+        unless mailer.layout_name.nil?
+          finder.find(mailer.layout_name)[format]
+        end
+      end
+
       # Returns a new updated instance of the mailer with the given settings.
       #
       # @yieldparam [Hanami::Mailer::Configuration] the new configuration instance
