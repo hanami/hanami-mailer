@@ -149,6 +149,15 @@ RSpec.describe Hanami::Mailer do
       end
     end
 
+    describe "when mailer defines layout" do
+      let(:mailer) { WithLayoutMailer.new(configuration: configuration) }
+
+      it "renders template inside defined layout" do
+        expect(mailer.render(:txt, {})).to include(%(MAIL-HEADER))
+        expect(mailer.render(:txt, {})).to include(%(MAIL-FOOTER))
+      end
+    end
+
     describe "when locals are parsed in" do
       let(:mailer) { RenderMailer.new(configuration: configuration) }
       let(:locals) { {user: User.new("Luca")} }

@@ -84,6 +84,15 @@ class WelcomeMailer < Hanami::Mailer
   end
 end
 
+class WithLayoutMailer < Hanami::Mailer
+  from        "noreply@sender.com"
+  to          "owner@recipient.com"
+
+  subject "Mail with layout"
+
+  layout "layout"
+end
+
 class EventMailer < Hanami::Mailer
   from    "events@domain.test"
   to      ->(locals) { locals.fetch(:user).email }
