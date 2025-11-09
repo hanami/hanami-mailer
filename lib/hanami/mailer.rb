@@ -193,7 +193,7 @@ module Hanami
       if (base_layout = layout_file(format)).nil?
         rendered_content
       else
-        base_layout.render_layout(rendered_content)
+        base_layout.render_layout(rendered_content, locals)
       end
     end
 

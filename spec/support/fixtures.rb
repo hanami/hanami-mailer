@@ -84,13 +84,22 @@ class WelcomeMailer < Hanami::Mailer
   end
 end
 
-class WithLayoutMailer < Hanami::Mailer
+class WithStaticLayoutMailer < Hanami::Mailer
   from        "noreply@sender.com"
   to          "owner@recipient.com"
 
-  subject "Mail with layout"
+  subject "Mail with static layout"
 
-  layout "layout"
+  layout "static_layout"
+end
+
+class WithDynamicLayoutMailer < Hanami::Mailer
+  from        "noreply@sender.com"
+  to          "owner@recipient.com"
+
+  subject "Mail with dynamic layout"
+
+  layout "dynamic_layout"
 end
 
 class EventMailer < Hanami::Mailer
