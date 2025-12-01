@@ -146,6 +146,25 @@ RSpec.describe Hanami::Mailer do
 
       it "renders template with defined context" do
         expect(mailer.render(:txt, {})).to include(%(Ahoy))
+        expect(mailer.render(:txt, {})).not_to include(%(MAIL-HEADER))
+      end
+    end
+
+    describe "when mailer defines static layout" do
+      let(:mailer) { WithStaticLayoutMailer.new(configuration: configuration) }
+
+      it "renders template inside defined layout" do
+        expect(mailer.render(:txt, {})).to include(%(MAIL-HEADER))
+        expect(mailer.render(:txt, {})).to include(%(MAIL-FOOTER))
+      end
+    end
+
+    describe "when mailer defines dynamic layout" do
+      let(:mailer) { WithDynamicLayoutMailer.new(configuration: configuration) }
+
+      it "renders template inside defined layout with dynamic content" do
+        expect(mailer.render(:txt, {layout_local: "DYNAMIC"})).to include(%(MAIL-HEADER-DYNAMIC))
+        expect(mailer.render(:txt, {layout_local: "DYNAMIC"})).to include(%(MAIL-FOOTER-DYNAMIC))
       end
     end
 

@@ -4,7 +4,7 @@ require "bundler/setup"
 require "hanami/mailer"
 require "benchmark/ips"
 require "allocation_stats"
-require_relative "./examples/base"
+require_relative "examples/base"
 
 configuration = Hanami::Mailer::Configuration.new do |config|
   config.root            = "examples/base"

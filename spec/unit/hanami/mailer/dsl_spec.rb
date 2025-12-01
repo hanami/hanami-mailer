@@ -135,6 +135,12 @@ RSpec.describe Hanami::Mailer::Dsl do
     end
   end
 
+  describe ".layout" do
+    it "sets a value" do
+      mailer.layout "file"
+    end
+  end
+
   describe ".template_name" do
     it "returns the default value" do
       expect(mailer.template_name).to be(nil)

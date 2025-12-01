@@ -188,7 +188,13 @@ module Hanami
     # @since 0.1.0
     # @api unstable
     def render(format, locals)
-      template(format).render(self, locals)
+      rendered_content = template(format).render(self, locals)
+
+      if (base_layout = layout_file(format)).nil?
+        rendered_content
+      else
+        base_layout.render_layout(rendered_content, locals)
+      end
     end
 
     private
@@ -231,6 +237,12 @@ module Hanami
     # @api unstable
     def template(format)
       configuration.template(self.class, format)
+    end
+
+    # @since next
+    # @api unstable
+    def layout_file(format)
+      configuration.layout(self.class, format)
     end
 
     # @since 0.1.0

@@ -23,6 +23,7 @@ module Hanami
           @return_path = nil
           @subject     = nil
           @template    = nil
+          @layout      = nil
           @before      = ->(*) {}
         end
       end
@@ -498,6 +499,36 @@ module Hanami
       # @api unstable
       def template_name
         @template || name
+      end
+
+      # Set the layout name to use
+      #
+      # If you need several mailers to share the same global layout,
+      # use this method to define the file to render.
+      #
+      # The layout file must then use <%= yield %> to include the mailer specific content.
+      # Default behaviour if nothing is provided is to use the template directly, without any layout.
+      #
+      # For a layout named `default_mailer`, it will look for
+      # `default_mailer.*.*` files under the root directory.
+      #
+      # @param value [String] the layout name
+      #
+      # @since 2.0.0
+      # @api unstable
+      #
+      # @example Custom layout name
+      #   require 'hanami/mailer'
+      #
+      #   class MyMailer < Hanami::Mailer
+      #     layout 'mailer_layout'
+      #   end
+      def layout(value)
+        @layout = value
+      end
+
+      def layout_name
+        @layout
       end
 
       # Before callback for email delivery
