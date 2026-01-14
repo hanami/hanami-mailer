@@ -442,6 +442,23 @@ Please note that **they aren't both mandatory, but at least one of them MUST** b
 
 __Hanami::Mailer__ uses [Semantic Versioning 2.0.0](http://semver.org)
 
+## Contribute
+
+In the spirit of [free software][free-sw], **everyone** is encouraged to help improve this project.
+
+If you want to contribute to the code, here are the steps to follow:
+
+1. Fork this repo to your account and clone it locally (`git clone git@github.com:your-pseudo/hanami-mailer.git`)
+2. Create your feature branch (`git checkout -b my-new-feature`)
+3. Install the dependencies (`./bin/setup`)
+4. Run CI, all checks should all pass (`script/ci`)
+5. Make your changes & check that the tests still pass. Add some test cases if needed.
+6. Commit your changes (`git commit -am 'Add some feature'`)
+7. Push to the branch (`git push origin my-new-feature`)
+8. Create new Pull Request on Github with some context on what you're trying to fix or to improve with this contribution
+
+Thank you for contributing! 
+
 ## Copyright
 
 Copyright © 2015-2021 Luca Guidi – Released under MIT License
