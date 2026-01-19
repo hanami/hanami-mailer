@@ -6,6 +6,8 @@ RSpec.describe Hanami::Mailer::MissingDeliveryDataError do
   end
 
   it "has a custom error message" do
-    expect { raise described_class }.to raise_error(described_class, "Missing delivery data, please check 'from', or 'to'")
+    expect {
+      raise described_class
+    }.to raise_error(described_class, "Missing delivery data, please check 'from', or 'to'")
   end
 end

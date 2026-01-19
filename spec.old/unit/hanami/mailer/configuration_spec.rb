@@ -20,19 +20,14 @@ RSpec.describe Hanami::Mailer::Configuration do
       end
 
       describe "and it implements #to_pathname" do
-        before do
-          RootPath = Struct.new(:path) do
+        it "sets the converted value" do
+          root_path_class = Struct.new(:path) do
             def to_pathname
               Pathname(path)
             end
           end
-        end
+          stub_const("RootPath", root_path_class)
 
-        after do
-          Object.send(:remove_const, :RootPath)
-        end
-
-        it "sets the converted value" do
           subject.root = RootPath.new("spec")
           expect(subject.root).to eq(Pathname.new("spec").realpath)
         end
@@ -73,12 +68,16 @@ RSpec.describe Hanami::Mailer::Configuration do
 
     describe "set with a class" do
       before do
-        subject.delivery_method = MandrillDeliveryMethod,
-                                  {username: "mandrill-username", password: "mandrill-api-key"}
+        subject.delivery_method =
+          MandrillDeliveryMethod,
+          {username: "mandrill-username", password: "mandrill-api-key"}
       end
 
       it "saves the delivery method in the configuration" do
-        expect(subject.delivery_method).to eq([MandrillDeliveryMethod, {username: "mandrill-username", password: "mandrill-api-key"}])
+        expect(subject.delivery_method).to eq([
+          MandrillDeliveryMethod,
+          {username: "mandrill-username", password: "mandrill-api-key"}
+        ])
       end
     end
   end

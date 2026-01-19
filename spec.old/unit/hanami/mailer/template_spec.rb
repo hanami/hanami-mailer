@@ -17,7 +17,9 @@ RSpec.describe Hanami::Mailer::Template do
 
     context "with missing template engine" do
       it "returns error" do
-        expect { described_class.new("Gemfile") }.to raise_error(RuntimeError, "No template engine registered for Gemfile")
+        expect {
+          described_class.new("Gemfile")
+        }.to raise_error(RuntimeError, "No template engine registered for Gemfile")
       end
     end
 

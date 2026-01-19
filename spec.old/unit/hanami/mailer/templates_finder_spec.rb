@@ -57,7 +57,8 @@ RSpec.describe Hanami::Mailer::TemplatesFinder do
         expect(actual.keys).to eq(%i[html txt])
         actual.each_value do |template|
           expect(template).to be_kind_of(Hanami::Mailer::Template)
-          expect(template.instance_variable_get(:@_template).__send__(:file)).to match(%r{spec/support/fixtures/templates/welcome_mailer.(html|txt).erb})
+          expect(template.instance_variable_get(:@_template).__send__(:file))
+            .to match(%r{spec/support/fixtures/templates/welcome_mailer.(html|txt).erb})
         end
       end
     end

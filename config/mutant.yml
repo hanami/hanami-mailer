@@ -1,4 +1,0 @@
-name: devtools
-namespace: "Hanami::Mailer"
-ignore_subjects:
-- "Devtools::Flay::Scale#flay"

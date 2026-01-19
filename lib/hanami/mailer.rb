@@ -1,278 +1,431 @@
 # frozen_string_literal: true
 
-require "mail"
-require "concurrent"
+require "dry/configurable"
+require "zeitwerk"
 
-# Hanami
-#
-# @since 0.1.0
+require_relative "mailer/errors"
+require_relative "mailer/attachment_data"
+
 module Hanami
-  # Hanami::Mailer
+  # Base mailer class
   #
-  # @since 0.1.0
+  # @api public
   class Mailer
-    require "hanami/mailer/version"
-    require "hanami/mailer/template"
-    require "hanami/mailer/finalizer"
-    require "hanami/mailer/configuration"
-    require "hanami/mailer/dsl"
-
-    # Content types mapping
-    #
-    # @since 0.1.0
     # @api private
-    CONTENT_TYPES = {
-      html: "text/html",
-      txt: "text/plain"
-    }.freeze
-
-    private_constant(:CONTENT_TYPES)
-
-    # Base error for Hanami::Mailer
-    #
-    # @since 0.1.0
-    class Error < ::StandardError
+    def self.gem_loader
+      @gem_loader ||= Zeitwerk::Loader.new.tap do |loader|
+        root = File.expand_path("..", __dir__)
+        loader.tag = "hanami-mailer"
+        loader.push_dir(root)
+        loader.ignore(
+          "#{root}/hanami-mailer.rb",
+          "#{root}/hanami/mailer/version.rb",
+          "#{root}/hanami/mailer/errors.rb"
+        )
+        loader.inflector = Zeitwerk::GemInflector.new("#{root}/hanami-mailer.rb")
+        loader.inflector.inflect(
+          "dsl" => "DSL",
+          "smtp" => "SMTP"
+        )
+      end
     end
 
-    # Unknown mailer
+    gem_loader.setup
+
+    extend Dry::Configurable
+
+    # Paths to search for static attachment files
+    # @api public
+    setting :attachment_paths, default: []
+
+    # Prepend Hanami::View integration if available.
+    # This wraps initialization to provide automatic view building from exposures.
+    # The ViewIntegration module adds all view-related settings and capabilities.
     #
-    # This error is raised at the runtime when trying to deliver a mail message,
-    # by using a configuration that it wasn't finalized yet.
-    #
-    # @since next
-    # @api unstable
-    #
-    # @see Hanami::Mailer.finalize
-    class UnknownMailerError < Error
-      # @param mailer [Hanami::Mailer] a mailer
+    # Note: When Hanami.bundled?("hanami-view") becomes available, we can use that instead of
+    # defined?(Hanami::View) for a more robust check.
+    if defined?(Hanami::View)
+      require_relative "mailer/view_integration"
+      include ViewIntegration
+    end
+
+    # Standard email headers that have dedicated convenience methods
+    # @api private
+    STANDARD_HEADERS = %i[from to cc bcc reply_to return_path subject].freeze
+
+    class << self
+      # Helper method for creating attachment data objects
       #
-      # @since next
-      # @api unstable
-      def initialize(mailer)
-        super("Unknown mailer: #{mailer.inspect}. Please finalize the configuration before to use it.")
+      # This is a convenience method for creating AttachmentData objects
+      # that can be passed to the `attachments:` parameter.
+      #
+      # @param filename [String] name of the file
+      # @param content [String] file content
+      # @param options [Hash] additional options (content_type, inline, etc.)
+      #
+      # @return [AttachmentData] attachment data object
+      #
+      # @api public
+      #
+      # @example
+      #   mailer.deliver(
+      #     user: user,
+      #     attachments: [
+      #       Hanami::Mailer.file("invoice.pdf", pdf_bytes, content_type: "application/pdf")
+      #     ]
+      #   )
+      def file(filename, content, **options)
+        AttachmentData.new(
+          filename: filename,
+          content: content,
+          content_type: options[:content_type],
+          inline: options[:inline] || false
+        )
       end
     end
 
-    # Missing delivery data error
-    #
-    # It's raised when a mailer doesn't specify `from` or `to`.
-    #
-    # @since 0.1.0
-    class MissingDeliveryDataError < Error
-      def initialize
-        super("Missing delivery data, please check 'from', or 'to'")
+    class << self
+      # Define a header field
+      #
+      # Can be called with:
+      # - A static value: `header :from, "noreply@example.com"`
+      # - A static value with proper casing: `header "X-Priority", "1"`
+      # - A proc/block: `header(:to) { |user_email:| user_email }`
+      #
+      # Procs receive keyword arguments from the merged input and exposures context.
+      #
+      # Header names:
+      # - Symbols with underscores (e.g., :x_priority) are converted to Title-Case (X-Priority)
+      # - Strings are passed through as-is, preserving casing
+      # - Use strings for full control over casing
+      #
+      # @param field_name [Symbol, String] the header field name
+      # @param value [Object, nil] optional static value
+      # @param block [Proc] optional block for computing the value
+      #
+      # @api public
+      def header(field_name, value = nil, &block)
+        headers.add(field_name, block, default: value)
+      end
+
+      # Define header fields: from, to, cc, bcc, reply_to, return_path, subject
+      #
+      # Each method can be called with:
+      # - A static value: `from "noreply@example.com"`
+      # - A proc/block: `to { |user_email:| user_email }`
+      #
+      # Procs receive keyword arguments from the merged input and exposures context.
+      #
+      # @api public
+      STANDARD_HEADERS.each do |field_name|
+        define_method(field_name) do |value = nil, &block|
+          header(field_name, value, &block)
+        end
+      end
+
+      # @api private
+      def headers
+        @headers ||= DSL::Exposures.new
+      end
+
+      # Define template data exposures
+      #
+      # @param names [Array<Symbol>] exposure names
+      # @param proc [Proc] optional block for computing the value
+      #
+      # @api public
+      def expose(*names, **options, &block)
+        if names.length == 1
+          exposures.add(names.first, block, **options)
+        else
+          names.each { |name| exposures.add(name, nil, **options) }
+        end
+      end
+
+      # @api private
+      def exposures
+        @exposures ||= DSL::Exposures.new
+      end
+
+      # Define an attachment
+      #
+      # @param name_or_filename [Symbol, String] method name or static filename
+      # @param proc [Proc] optional block for computing attachment
+      #
+      # @api public
+      def attachment(name_or_filename = nil, **options, &block)
+        attachments.add(name_or_filename, block, **options)
+      end
+
+      # @api private
+      def attachments
+        @attachments ||= DSL::Attachments.new
+      end
+
+      # @api private
+      def inherited(subclass)
+        super
+
+        subclass.instance_variable_set(:@headers, headers.dup)
+        subclass.instance_variable_set(:@exposures, exposures.dup)
+        subclass.instance_variable_set(:@attachments, attachments.dup)
       end
     end
+    # @api private
+    attr_reader :view, :delivery
 
-    # @since next
-    # @api unstable
-    @_subclasses = Concurrent::Array.new
-
-    # Override Ruby's hook for modules.
-    # It includes basic `Hanami::Mailer` modules to the given Class.
-    # It sets a copy of the framework configuration
+    # Initialize a new mailer instance
     #
-    # @param base [Class] the target mailer
+    # @param view [Object, nil] optional view object for rendering
+    # @param delivery [Object] delivery method (defaults to Test delivery)
     #
-    # @since next
-    # @api unstable
-    def self.inherited(base)
-      super
-      @_subclasses.push(base)
-      base.extend Dsl
+    # @api public
+    def initialize(view: nil, delivery: nil)
+      @view = view
+      @delivery = delivery || default_delivery
     end
 
-    private_class_method :inherited
+    # Deliver the email
+    #
+    # @param headers [Hash] optional header overrides (from, to, cc, bcc, reply_to, subject)
+    # @param attachments [Array<Hash, AttachmentData>, nil] optional runtime attachments
+    # @param input [Hash] input data for exposures and rendering
+    #
+    # @return [Mail::Message]
+    #
+    # @api public
+    def deliver(headers: {}, attachments: nil, **input)
+      message = prepare(headers: headers, attachments: attachments, **input)
+      delivery.call(message)
+    end
 
-    # Finalize the configuration
+    # rubocop:disable Metrics/AbcSize
+
+    # Build the message without delivering it
     #
-    # This should be used before to start to use the mailers
+    # @param headers [Hash] optional header overrides (from, to, cc, bcc, reply_to, subject)
+    # @param attachments [Array<Hash, AttachmentData>, nil] optional runtime attachments
+    # @param input [Hash] input data for exposures and rendering
     #
-    # @param configuration [Hanami::Mailer::Configuration] the configuration to
-    #   finalize
+    # @return [Message]
     #
-    # @return [Hanami::Mailer::Configuration] the finalized configuration
+    # @api public
+    def prepare(headers: {}, attachments: nil, **input)
+      # Collect header overrides (compact to remove nil values)
+      header_overrides = headers.compact
+
+      # Evaluate exposures
+      locals = self.class.exposures.bind(self).call(input)
+
+      # Merge input with evaluated locals for use in header evaluation
+      context = input.merge(locals)
+
+      # Evaluate headers (from, to, cc, bcc, reply_to, return_path, subject, and custom headers)
+      headers = self.class.headers.bind(self).call(context)
+
+      # Merge with overrides, giving precedence to explicit arguments
+      headers = headers.merge(header_overrides)
+
+      # Separate standard headers from custom headers
+      custom_headers = headers.reject { |key, _| STANDARD_HEADERS.include?(key) }
+
+      # Normalize custom header names to proper casing
+      normalized_custom_headers = custom_headers.transform_keys { |key| normalize_header_name(key) }
+
+      # Render body
+      html_body = render_html(input)
+      text_body = render_text(input)
+
+      # Evaluate class-level attachments
+      attachment_data = self.class.attachments.bind(self, context)
+      attachment_objects = attachment_data.map do |data|
+        Attachment.new(
+          filename: data[:filename],
+          content: read_attachment_content(data[:content], static: data[:static]),
+          content_type: data[:content_type],
+          inline: data[:inline]
+        )
+      end
+
+      # Add runtime attachments
+      if attachments
+        runtime_attachments = process_runtime_attachments(attachments)
+        attachment_objects.concat(runtime_attachments)
+      end
+
+      # Check for duplicate filenames
+      ensure_unique_attachments attachment_objects
+
+      # Build message
+      Message.new(
+        from: headers[:from],
+        to: headers[:to],
+        cc: headers[:cc],
+        bcc: headers[:bcc],
+        reply_to: headers[:reply_to],
+        return_path: headers[:return_path],
+        subject: headers[:subject],
+        html_body: html_body,
+        text_body: text_body,
+        attachments: attachment_objects,
+        headers: normalized_custom_headers
+      )
+    end
+    # rubocop:enable Metrics/AbcSize
+
+    # Helper method for creating attachments in attachment blocks
     #
-    # @since next
-    # @api unstable
+    # Returns an AttachmentData object that provides a structured, validated
+    # way to define attachment data instead of using raw hashes.
+    #
+    # @param filename [String] name of the file
+    # @param content [String] file content
+    # @param options [Hash] additional options (content_type, inline, etc.)
+    #
+    # @return [AttachmentData] attachment data object
+    #
+    # @api public
     #
     # @example
-    #   require 'hanami/mailer'
-    #
-    #   configuration = Hanami::Mailer::Configuration.new do |config|
-    #     # ...
+    #   attachment :invoice do |invoice:|
+    #     file("invoice-#{invoice.number}.pdf", invoice.to_pdf, content_type: "application/pdf")
     #   end
-    #
-    #   configuration = Hanami::Mailer.finalize(configuration)
-    #   MyMailer.new(configuration: configuration)
-    def self.finalize(configuration)
-      Finalizer.finalize(@_subclasses, configuration)
-    end
-
-    # Initialize a mailer
-    #
-    # @param configuration [Hanami::Mailer::Configuration] the configuration
-    # @return [Hanami::Mailer]
-    #
-    # @since 0.1.0
-    def initialize(configuration:)
-      @configuration = configuration
-      freeze
-    end
-
-    # Prepare the email message when a new mailer is initialized.
-    #
-    # @return [Mail::Message] the delivered email
-    #
-    # @since 0.1.0
-    # @api unstable
-    #
-    # @see Hanami::Mailer::Configuration#default_charset
-    #
-    # @example
-    #   require 'hanami/mailer'
-    #
-    #   configuration = Hanami::Mailer::Configuration.new do |config|
-    #     config.delivery_method = :smtp
-    #   end
-    #
-    #   configuration = Hanami::Mailer.finalize(configuration)
-    #
-    #   module Billing
-    #     class InvoiceMailer < Hanami::Mailer
-    #       from    'noreply@example.com'
-    #       to      ->(locals) { locals.fetch(:user).email }
-    #       subject ->(locals) { "Invoice number #{locals.fetch(:invoice).number}" }
-    #
-    #       before do |mail, locals|
-    #         mail.attachments["invoice-#{locals.fetch(:invoice).number}.pdf"] =
-    #           File.read('/path/to/invoice.pdf')
-    #       end
-    #     end
-    #   end
-    #
-    #   invoice = Invoice.new(number: 23)
-    #   user    = User.new(name: 'L', email: 'user@example.com')
-    #
-    #   mailer = Billing::InvoiceMailer.new(configuration: configuration)
-    #
-    #   # Deliver both text, HTML parts and the attachment
-    #   mailer.deliver(invoice: invoice, user: user)
-    #
-    #   # Deliver only the text part and the attachment
-    #   mailer.deliver(invoice: invoice, user: user, format: :txt)
-    #
-    #   # Deliver only the text part and the attachment
-    #   mailer.deliver(invoice: invoice, user: user, format: :html)
-    #
-    #   # Deliver both the parts with "iso-8859"
-    #   mailer.deliver(invoice: invoice, user: user, charset: 'iso-8859')
-    def deliver(locals)
-      mail(locals).deliver
-    rescue ArgumentError => exception
-      raise MissingDeliveryDataError if exception.message =~ /SMTP (From|To) address/
-
-      raise
-    end
-
-    # @since next
-    # @api unstable
-    alias_method :call, :deliver
-
-    # Render a single template with the specified format.
-    #
-    # @param format [Symbol] format
-    #
-    # @return [String] the output of the rendering process.
-    #
-    # @since 0.1.0
-    # @api unstable
-    def render(format, locals)
-      rendered_content = template(format).render(self, locals)
-
-      if (base_layout = layout_file(format)).nil?
-        rendered_content
-      else
-        base_layout.render_layout(rendered_content, locals)
-      end
+    def file(...)
+      self.class.file(...)
     end
 
     private
 
-    # @api unstable
-    # @since next
-    attr_reader :configuration
-
-    # @api unstable
-    # @since next
-    def mail(locals)
-      Mail.new.tap do |mail|
-        instance_exec(mail, locals, &self.class.before)
-        bind(mail, locals)
-      end
-    end
-
-    # @api unstable
-    # @since next
+    # Render HTML body
     #
-    def bind(mail, locals) # rubocop:disable Metrics/AbcSize
-      charset = locals.fetch(:charset, configuration.default_charset)
-
-      mail.return_path = __dsl(:return_path, locals)
-      mail.from        = __dsl(:from,        locals)
-      mail.to          = __dsl(:to,          locals)
-      mail.cc          = __dsl(:cc,          locals)
-      mail.bcc         = __dsl(:bcc,         locals)
-      mail.reply_to    = __dsl(:reply_to,    locals)
-      mail.subject     = __dsl(:subject,     locals)
-
-      mail.html_part = __part(:html, charset, locals)
-      mail.text_part = __part(:txt,  charset, locals)
-
-      mail.charset = charset
-      mail.delivery_method(*configuration.delivery_method)
+    # @param input [Hash] input data for rendering
+    # @return [String, nil]
+    # @api private
+    def render_html(input)
+      render_view(:html, input)
     end
 
-    # @since next
-    # @api unstable
-    def template(format)
-      configuration.template(self.class, format)
+    # Render plain text body
+    #
+    # @param input [Hash] input data for rendering
+    # @return [String, nil]
+    # @api private
+    def render_text(input)
+      render_view(:txt, input)
     end
 
-    # @since next
-    # @api unstable
-    def layout_file(format)
-      configuration.layout(self.class, format)
+    # Render body for a specific format
+    #
+    # @param format [Symbol] the format to render (:html, :txt)
+    # @param input [Hash] input data for rendering
+    # @return [String, nil]
+    # @api private
+    def render_view(format, input)
+      # TODO: should this be overridden by view integration? I'm thinking actually yes.
+      return unless view
+
+      view.call(format:, **input).to_s
+    rescue StandardError
+      # TODO: need better checking here
+      # Template might not exist for this format
+      nil
     end
 
-    # @since 0.1.0
-    # @api unstable
-    def __dsl(method_name, locals)
-      case result = self.class.__send__(method_name)
-      when Proc
-        result.call(locals)
+    def read_attachment_content(content, static: false)
+      # If content is a file path string, search for it in attachment_paths
+      if content.is_a?(String) && static
+        file_path = find_attachment_file(content)
+        if file_path
+          File.read(file_path)
+        else
+          # Static attachment file not found - raise error
+          raise MissingAttachmentError.new(content, self.class.config.attachment_paths)
+        end
       else
-        result
+        content
       end
     end
 
-    # @since 0.1.0
-    # @api unstable
-    def __part(format, charset, locals)
-      return unless __part?(format, locals)
-
-      Mail::Part.new.tap do |part|
-        part.content_type = "#{CONTENT_TYPES.fetch(format)}; charset=#{charset}"
-        part.body         = render(format, locals)
+    def find_attachment_file(filename)
+      # If attachment_paths is configured, search there
+      if self.class.config.attachment_paths.any?
+        self.class.config.attachment_paths.each do |path|
+          full_path = File.join(path, filename)
+          return full_path if File.exist?(full_path)
+        end
+        nil
+      else
+        # Fall back to checking if the filename itself is a valid path
+        File.exist?(filename) ? filename : nil
       end
     end
 
-    # @since 0.1.0
-    # @api unstable
-    def __part?(format, locals)
-      wanted = locals.fetch(:format, nil)
-      wanted == format ||
-        (!wanted && !template(format).nil?)
+    def default_delivery
+      Delivery::Test.new
+    end
+
+    # Normalize header names to proper email header casing
+    #
+    # @param name [Symbol, String] the header name
+    # @return [String] properly cased header name
+    #
+    # @api private
+    def normalize_header_name(name)
+      return name if name.is_a?(String)
+
+      # Convert symbol to string and apply Title-Case with dashes
+      # e.g., :x_priority => "X-Priority"
+      #       :list_unsubscribe => "List-Unsubscribe"
+      name.to_s
+        .split("_")
+        .map(&:capitalize)
+        .join("-")
+    end
+
+    # Process runtime attachments into Attachment objects
+    #
+    # @param attachments [Array<Hash, AttachmentData>] runtime attachments
+    # @return [Array<Attachment>]
+    #
+    # @api private
+    def process_runtime_attachments(attachments)
+      Array(attachments).map do |attachment|
+        data = if attachment.is_a?(AttachmentData)
+          attachment
+        else
+          begin
+            AttachmentData.new(**attachment)
+          rescue ArgumentError => e
+            # Re-raise with clearer message for missing keywords
+            if e.message.include?("missing keyword")
+              keyword = e.message[/missing keyword: :?(\w+)/, 1]
+              raise ArgumentError, "#{keyword} is required"
+            else
+              raise
+            end
+          end
+        end
+
+        Attachment.new(
+          filename: data.filename,
+          content: data.content,
+          content_type: data.content_type,
+          inline: data.inline
+        )
+      end
+    end
+
+    # Validate that all attachment filenames are unique
+    #
+    # @param attachments [Array<Attachment>] all attachments
+    # @raise [DuplicateAttachmentError] if duplicate filenames are found
+    #
+    # @api private
+    def ensure_unique_attachments(attachments)
+      filenames = attachments.map(&:filename)
+      duplicates = filenames.select { |filename| filenames.count(filename) > 1 }.uniq
+
+      raise DuplicateAttachmentError, duplicates.first if duplicates.any?
     end
   end
 end
