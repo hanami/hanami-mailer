@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 RSpec.describe Hanami::Mailer, "view integration" do
-
-
   describe "without a view" do
     let(:mailer_class) do
       Class.new(Hanami::Mailer) do
@@ -95,6 +93,7 @@ RSpec.describe Hanami::Mailer, "view integration" do
       Class.new do
         def call(format:, **)
           raise StandardError, "Template not found" if format == :txt
+
           "<p>HTML works</p>"
         end
       end.new

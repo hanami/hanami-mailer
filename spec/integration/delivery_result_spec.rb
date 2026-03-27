@@ -315,7 +315,7 @@ RSpec.describe Hanami::Mailer, "delivery results" do
       if result.success?
         expect(result.message.to).to eq(["alice@example.com"])
       else
-        fail "Expected delivery to succeed"
+        raise "Expected delivery to succeed"
       end
     end
 
@@ -347,7 +347,7 @@ RSpec.describe Hanami::Mailer, "delivery results" do
       result = mailer.deliver(user: user)
 
       if result.success?
-        fail "Expected delivery to fail"
+        raise "Expected delivery to fail"
       else
         log_message = "Failed to deliver to #{result.message.to.join(', ')}: #{result.error.message}"
         expect(log_message).to eq("Failed to deliver to charlie@example.com: Network timeout")

@@ -75,8 +75,10 @@ RSpec.describe Hanami::Mailer, "with hanami-view" do
 
   describe "exposures passed to view" do
     before do
-      File.write(File.join(templates_dir, "order_mailer.html.erb"),
-        "<p>Order #<%= order_id %> for <%= customer_name %></p>")
+      File.write(
+        File.join(templates_dir, "order_mailer.html.erb"),
+        "<p>Order #<%= order_id %> for <%= customer_name %></p>"
+      )
     end
 
     let(:mailer_class) do
@@ -98,7 +100,7 @@ RSpec.describe Hanami::Mailer, "with hanami-view" do
 
     it "passes all exposures to view" do
       mailer = mailer_class.new
-      result = mailer.deliver(order_id: 12345, customer: {name: "Bob"})
+      result = mailer.deliver(order_id: 12_345, customer: {name: "Bob"})
 
       expect(result.message.html_body).to include("Order #12345")
       expect(result.message.html_body).to include("Bob")
@@ -106,7 +108,7 @@ RSpec.describe Hanami::Mailer, "with hanami-view" do
 
     it "evaluates computed exposures before passing to view" do
       mailer = mailer_class.new
-      result = mailer.deliver(order_id: 99999, customer: {name: "Charlie"})
+      result = mailer.deliver(order_id: 99_999, customer: {name: "Charlie"})
 
       expect(result.message.html_body).to include("Charlie")
     end
@@ -115,8 +117,10 @@ RSpec.describe Hanami::Mailer, "with hanami-view" do
   describe "template inference" do
     before do
       FileUtils.mkdir_p(File.join(templates_dir, "mailers"))
-      File.write(File.join(templates_dir, "mailers", "notification_mailer.html.erb"),
-        "<p>Notification content</p>")
+      File.write(
+        File.join(templates_dir, "mailers", "notification_mailer.html.erb"),
+        "<p>Notification content</p>"
+      )
     end
 
     # Named class for template inference

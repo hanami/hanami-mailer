@@ -30,8 +30,8 @@ module Hanami
           exception = nil
           begin
             mail.deliver!
-          rescue Net::SMTPError => e
-            exception = e
+          rescue Net::SMTPError => exception
+            exception = exception
           end
 
           Result.new(

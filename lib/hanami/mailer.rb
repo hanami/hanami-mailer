@@ -425,21 +425,22 @@ module Hanami
     # @api private
     def process_runtime_attachments(attachments)
       Array(attachments).map do |attachment|
-        data = if attachment.is_a?(AttachmentData)
-          attachment
-        else
-          begin
-            AttachmentData.new(**attachment)
-          rescue ArgumentError => e
-            # Re-raise with clearer message for missing keywords
-            if e.message.include?("missing keyword")
-              keyword = e.message[/missing keyword: :?(\w+)/, 1]
-              raise ArgumentError, "#{keyword} is required"
-            else
-              raise
+        data =
+          if attachment.is_a?(AttachmentData)
+            attachment
+          else
+            begin
+              AttachmentData.new(**attachment)
+            rescue ArgumentError => exception
+              # Re-raise with clearer message for missing keywords
+              if exception.message.include?("missing keyword")
+                keyword = exception.message[/missing keyword: :?(\w+)/, 1]
+                raise ArgumentError, "#{keyword} is required"
+              else
+                raise
+              end
             end
           end
-        end
 
         Attachment.new(
           filename: data.filename,

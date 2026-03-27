@@ -84,15 +84,14 @@ module Hanami
           def inferred_template(mailer)
             return nil unless mailer.class.name
 
-            base = mailer.class.config.template_inference_base
-            name = mailer.class.name
+            mailer.class.config.template_inference_base
+            mailer.class.name
               .gsub("::", "/")
               .gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
               .gsub(/([a-z\d])([A-Z])/, '\1_\2')
               .downcase
 
             # Keep the full path including the base - template_inference_base is just metadata
-            name
           end
 
           # rubocop:disable Metrics/AbcSize, Metrics/PerceivedComplexity
@@ -129,7 +128,8 @@ module Hanami
                 # Skip mailer-specific settings and already-set critical settings
                 #
                 # FIXME: need a nicer way of doing this
-                next if %i[default_from default_charset template_inference_base paths template layout].include?(setting_name)
+                next if %i[default_from default_charset template_inference_base paths template
+                           layout].include?(setting_name)
 
                 # Apply the setting value from mailer config if it exists
                 if mailer_config.respond_to?(setting_name)

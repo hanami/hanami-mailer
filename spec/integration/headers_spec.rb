@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 RSpec.describe Hanami::Mailer, "custom headers" do
-
-
   describe "static header values" do
     let(:mailer_class) do
       Class.new(Hanami::Mailer) do

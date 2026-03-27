@@ -31,11 +31,12 @@ module Hanami
     # @api public
     class MissingAttachmentError < Error
       def initialize(filename, paths = [])
-        message = if paths.any?
-          "Attachment file not found: #{filename}. Searched in: #{paths.join(', ')}"
-        else
-          "Attachment file not found: #{filename}. Configure `attachment_paths` to specify where attachment files are located."
-        end
+        message =
+          if paths.any?
+            "Attachment file not found: #{filename}. Searched in: #{paths.join(', ')}"
+          else
+            "Attachment file not found: #{filename}. Configure `attachment_paths` to specify where attachment files are located."
+          end
         super(message)
       end
     end

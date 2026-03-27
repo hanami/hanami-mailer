@@ -243,28 +243,28 @@ RSpec.describe Hanami::Mailer::DSL::CleverProc do
     end
 
     it "returns required positional parameter names" do
-      proc = ->(first, second) { }
+      proc = ->(first, second) {}
       clever_proc = described_class.new(proc, context: Object.new)
 
       expect(clever_proc.dependency_names).to eq([:first, :second])
     end
 
     it "returns optional positional parameter names" do
-      proc = ->(required, optional = nil) { }
+      proc = ->(required, optional = nil) {}
       clever_proc = described_class.new(proc, context: Object.new)
 
       expect(clever_proc.dependency_names).to eq([:required, :optional])
     end
 
     it "excludes keyword parameters" do
-      proc = ->(positional, keyword:) { }
+      proc = ->(positional, keyword:) {}
       clever_proc = described_class.new(proc, context: Object.new)
 
       expect(clever_proc.dependency_names).to eq([:positional])
     end
 
     it "excludes rest parameters" do
-      proc = ->(first, *rest) { }
+      proc = ->(first, *rest) {}
       clever_proc = described_class.new(proc, context: Object.new)
 
       expect(clever_proc.dependency_names).to eq([:first])
@@ -279,28 +279,28 @@ RSpec.describe Hanami::Mailer::DSL::CleverProc do
     end
 
     it "returns required keyword parameter names" do
-      proc = ->(first:, second:) { }
+      proc = ->(first:, second:) {}
       clever_proc = described_class.new(proc, context: Object.new)
 
       expect(clever_proc.keyword_names).to eq([:first, :second])
     end
 
     it "returns optional keyword parameter names" do
-      proc = ->(required:, optional: nil) { }
+      proc = ->(required:, optional: nil) {}
       clever_proc = described_class.new(proc, context: Object.new)
 
       expect(clever_proc.keyword_names).to eq([:required, :optional])
     end
 
     it "excludes positional parameters" do
-      proc = ->(positional, keyword:) { }
+      proc = ->(positional, keyword:) {}
       clever_proc = described_class.new(proc, context: Object.new)
 
       expect(clever_proc.keyword_names).to eq([:keyword])
     end
 
     it "excludes keyrest parameters" do
-      proc = ->(named:, **rest) { }
+      proc = ->(named:, **rest) {}
       clever_proc = described_class.new(proc, context: Object.new)
 
       expect(clever_proc.keyword_names).to eq([:named])

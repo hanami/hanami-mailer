@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 RSpec.describe Hanami::Mailer, "delivery options" do
-
-
   let(:custom_delivery_class) do
     Class.new do
       attr_reader :last_options

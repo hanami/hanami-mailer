@@ -118,7 +118,7 @@ RSpec.describe Hanami::Mailer::DSL::Exposure do
     end
 
     it "returns positional parameter names from proc" do
-      proc = ->(order, user) { }
+      proc = ->(order, user) {}
       exposure = described_class.new(:computed, proc, Object.new)
 
       expect(exposure.dependency_names).to eq([:order, :user])
@@ -133,7 +133,7 @@ RSpec.describe Hanami::Mailer::DSL::Exposure do
     end
 
     it "returns true when has dependencies" do
-      proc = ->(other_exposure) { }
+      proc = ->(other_exposure) {}
       exposure = described_class.new(:computed, proc, Object.new)
 
       expect(exposure.dependencies?).to be true
@@ -148,7 +148,7 @@ RSpec.describe Hanami::Mailer::DSL::Exposure do
     end
 
     it "returns keyword parameter names from proc" do
-      proc = ->(user:, order:) { }
+      proc = ->(user:, order:) {}
       exposure = described_class.new(:computed, proc, Object.new)
 
       expect(exposure.input_keys).to eq([:user, :order])
