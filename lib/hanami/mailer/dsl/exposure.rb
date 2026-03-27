@@ -38,6 +38,11 @@ module Hanami
         end
 
         # @api private
+        def proc
+          callable&.proc
+        end
+
+        # @api private
         def dependency_names
           return [] unless callable
 

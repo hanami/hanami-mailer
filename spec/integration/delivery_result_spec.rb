@@ -1,10 +1,6 @@
 # frozen_string_literal: true
 
 RSpec.describe Hanami::Mailer, "delivery results" do
-  before do
-    Hanami::Mailer::Delivery::Test.clear
-  end
-
   describe "Delivery::Result" do
     let(:mailer_class) do
       Class.new(Hanami::Mailer) do

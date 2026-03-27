@@ -1,10 +1,6 @@
 # frozen_string_literal: true
 
 RSpec.describe Hanami::Mailer, "basic delivery" do
-  before do
-    Hanami::Mailer::Delivery::Test.clear
-  end
-
   describe "simple mailer with static values" do
     let(:mailer_class) do
       Class.new(Hanami::Mailer) do

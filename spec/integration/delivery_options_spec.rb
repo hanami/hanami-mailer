@@ -1,9 +1,7 @@
 # frozen_string_literal: true
 
 RSpec.describe Hanami::Mailer, "delivery options" do
-  before do
-    Hanami::Mailer::Delivery::Test.clear
-  end
+
 
   let(:custom_delivery_class) do
     Class.new do

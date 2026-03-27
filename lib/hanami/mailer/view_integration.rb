@@ -60,9 +60,12 @@ module Hanami
           def call(mailer)
             return nil if mailer.class.exposures.empty? && mailer.class.config.paths.empty?
 
+            configured_template = mailer.class.config.template
+            template = configured_template && !configured_template.empty? ? configured_template : inferred_template(mailer)
+
             build_view_class(
               paths: mailer.class.config.paths,
-              template: inferred_template(mailer),
+              template: template,
               exposures: mailer.class.exposures,
               config: mailer.class.config
             )
@@ -82,8 +85,13 @@ module Hanami
             return nil unless mailer.class.name
 
             base = mailer.class.config.template_inference_base
-            name = mailer.class.name.gsub("::", "/").downcase
-            name = name.delete_prefix("#{base}/") if base
+            name = mailer.class.name
+              .gsub("::", "/")
+              .gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
+              .gsub(/([a-z\d])([A-Z])/, '\1_\2')
+              .downcase
+
+            # Keep the full path including the base - template_inference_base is just metadata
             name
           end
 
@@ -105,24 +113,29 @@ module Hanami
             view_exposures = exposures
             mailer_config = config
 
-            Class.new(Hanami::View) do
-              # Copy all relevant settings from mailer config to view config
+            # paths is required by Hanami::View - return nil if not configured
+            return nil if view_paths.nil? || view_paths.empty?
+
+            view_class = Class.new(Hanami::View) do
+              # Set critical required settings first
+              self.config.paths = view_paths
+              self.config.template = view_template
+              self.config.layout = false
+
+              # Copy remaining settings from mailer config to view config
               Hanami::View.config._settings.each do |setting_def|
                 setting_name = setting_def.name
 
-                # Skip mailer-specific settings
-                next if %i[default_from default_charset template_inference_base].include?(setting_name)
+                # Skip mailer-specific settings and already-set critical settings
+                #
+                # FIXME: need a nicer way of doing this
+                next if %i[default_from default_charset template_inference_base paths template layout].include?(setting_name)
 
                 # Apply the setting value from mailer config if it exists
                 if mailer_config.respond_to?(setting_name)
-                  config.public_send(:"#{setting_name}=", mailer_config.public_send(setting_name))
+                  self.config.public_send(:"#{setting_name}=", mailer_config.public_send(setting_name))
                 end
               end
-
-              # Override specific settings for mailer use
-              config.paths = view_paths if view_paths && !view_paths.empty?
-              config.template = view_template if view_template
-              config.layout = false
 
               view_exposures.each do |name, exposure|
                 if exposure.proc
@@ -131,7 +144,9 @@ module Hanami
                   expose(name, **exposure.options)
                 end
               end
-            end.new
+            end
+
+            view_class.new
           end
           # rubocop:enable Metrics/AbcSize, Metrics/PerceivedComplexity
         end
