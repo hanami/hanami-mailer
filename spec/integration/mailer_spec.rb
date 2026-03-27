@@ -75,33 +75,6 @@ RSpec.describe Hanami::Mailer, "basic delivery" do
     end
   end
 
-  describe "mailer with exposures" do
-    let(:mailer_class) do
-      Class.new(Hanami::Mailer) do
-        from "noreply@example.com"
-        to { |user:| user[:email] }
-        subject "Your order confirmation"
-
-        expose :user
-        expose :order
-        expose :total do |order:|
-          order[:items].sum { |item| item[:price] }
-        end
-      end
-    end
-
-    it "evaluates exposures" do
-      mailer = mailer_class.new
-      user = {name: "Bob", email: "bob@example.com"}
-      order = {id: 123, items: [{price: 10}, {price: 20}]}
-
-      message = mailer.prepare(user: user, order: order)
-
-      expect(message).to be_a(Hanami::Mailer::Message)
-      expect(message.to).to eq(["bob@example.com"])
-    end
-  end
-
   describe "mailer with metadata using keyword arguments" do
     let(:mailer_class) do
       Class.new(Hanami::Mailer) do

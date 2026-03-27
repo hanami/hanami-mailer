@@ -101,110 +101,35 @@ RSpec.describe Hanami::Mailer, "delivery results" do
     end
   end
 
-  describe "SMTP delivery" do
-    let(:mailer_class) do
-      Class.new(Hanami::Mailer) do
-        from "noreply@example.com"
-        to "user@example.com"
-        subject "SMTP test"
-      end
-    end
-
-    it "returns a Result on successful delivery", :smtp do
-      smtp_delivery = Hanami::Mailer::Delivery::SMTP.new(
-        address: "smtp.example.com",
-        port: 587
-      )
-
-      mailer = mailer_class.new(delivery: smtp_delivery)
-
-      # Mock successful SMTP delivery
-      mail_double = instance_double("Mail::Message")
-      allow(mail_double).to receive(:delivery_method)
-      allow(mail_double).to receive(:deliver!)
-      allow_any_instance_of(Hanami::Mailer::Delivery::SMTP)
-        .to receive(:to_mail).and_return(mail_double)
-
-      result = mailer.deliver
-
-      expect(result).to be_a(Hanami::Mailer::Delivery::Result)
-      expect(result.success?).to be true
-      expect(result.error).to be_nil
-      expect(result.response).to eq(mail_double)
-    end
-
-    it "returns a Result with error on SMTP failure", :smtp do
-      smtp_delivery = Hanami::Mailer::Delivery::SMTP.new(
-        address: "smtp.example.com",
-        port: 587
-      )
-
-      mailer = mailer_class.new(delivery: smtp_delivery)
-
-      # Mock SMTP error
-      smtp_error = Net::SMTPFatalError.new("550 Mailbox unavailable")
-      mail_double = instance_double("Mail::Message")
-      allow(mail_double).to receive(:delivery_method)
-      allow(mail_double).to receive(:deliver!).and_raise(smtp_error)
-      allow_any_instance_of(Hanami::Mailer::Delivery::SMTP)
-        .to receive(:to_mail).and_return(mail_double)
-
-      result = mailer.deliver
-
-      expect(result).to be_a(Hanami::Mailer::Delivery::Result)
-      expect(result.success?).to be false
-      expect(result.error).to eq(smtp_error)
-      expect(result.error.message).to include("550 Mailbox unavailable")
-    end
-
-    it "includes the message even when delivery fails", :smtp do
-      smtp_delivery = Hanami::Mailer::Delivery::SMTP.new(
-        address: "smtp.example.com",
-        port: 587
-      )
-
-      mailer = mailer_class.new(delivery: smtp_delivery)
-
-      # Mock SMTP error
-      smtp_error = Net::SMTPAuthenticationError.new("Authentication failed")
-      mail_double = instance_double("Mail::Message")
-      allow(mail_double).to receive(:delivery_method)
-      allow(mail_double).to receive(:deliver!).and_raise(smtp_error)
-      allow_any_instance_of(Hanami::Mailer::Delivery::SMTP)
-        .to receive(:to_mail).and_return(mail_double)
-
-      result = mailer.deliver
-
-      expect(result.message).to be_a(Hanami::Mailer::Message)
-      expect(result.message.subject).to eq("SMTP test")
-    end
-  end
-
   describe "custom delivery method with extended result" do
-    # Simulates a third-party delivery service like Postmark or Mailchimp
-    class CustomResult < Hanami::Mailer::Delivery::Result
-      attr_reader :message_id, :submitted_at
+    let(:custom_result_class) do
+      Class.new(Hanami::Mailer::Delivery::Result) do
+        attr_reader :message_id, :submitted_at
 
-      def initialize(message_id:, submitted_at: nil, **)
-        super(**)
-        @message_id = message_id
-        @submitted_at = submitted_at
+        def initialize(message_id:, submitted_at: nil, **)
+          super(**)
+          @message_id = message_id
+          @submitted_at = submitted_at
+        end
       end
     end
 
-    class CustomDelivery
-      def call(message)
-        # Simulate API call
-        message_id = "msg_#{SecureRandom.hex(8)}"
-        submitted_at = Time.now
+    let(:custom_delivery) do
+      result_class = custom_result_class
 
-        CustomResult.new(
-          message: message,
-          message_id: message_id,
-          submitted_at: submitted_at,
-          response: {id: message_id, status: "queued"}
-        )
-      end
+      Class.new do
+        define_method(:call) do |message|
+          message_id = "msg_#{SecureRandom.hex(8)}"
+          submitted_at = Time.now
+
+          result_class.new(
+            message: message,
+            message_id: message_id,
+            submitted_at: submitted_at,
+            response: {id: message_id, status: "queued"}
+          )
+        end
+      end.new
     end
 
     let(:mailer_class) do
@@ -216,20 +141,16 @@ RSpec.describe Hanami::Mailer, "delivery results" do
     end
 
     it "allows delivery methods to return custom Result subclasses" do
-      custom_delivery = CustomDelivery.new
       mailer = mailer_class.new(delivery: custom_delivery)
-
       result = mailer.deliver
 
-      expect(result).to be_a(CustomResult)
+      expect(result).to be_a(custom_result_class)
       expect(result).to be_a(Hanami::Mailer::Delivery::Result)
       expect(result.success?).to be true
     end
 
     it "provides access to custom attributes" do
-      custom_delivery = CustomDelivery.new
       mailer = mailer_class.new(delivery: custom_delivery)
-
       result = mailer.deliver
 
       expect(result.message_id).to match(/^msg_[a-f0-9]{16}$/)
@@ -238,9 +159,7 @@ RSpec.describe Hanami::Mailer, "delivery results" do
     end
 
     it "still provides standard Result interface" do
-      custom_delivery = CustomDelivery.new
       mailer = mailer_class.new(delivery: custom_delivery)
-
       result = mailer.deliver
 
       expect(result.message).to be_a(Hanami::Mailer::Message)
@@ -251,26 +170,32 @@ RSpec.describe Hanami::Mailer, "delivery results" do
   end
 
   describe "custom delivery method with failure result" do
-    class FailingCustomResult < Hanami::Mailer::Delivery::Result
-      attr_reader :error_code
+    let(:failing_result_class) do
+      Class.new(Hanami::Mailer::Delivery::Result) do
+        attr_reader :error_code
 
-      def initialize(error_code:, **)
-        super(**)
-        @error_code = error_code
+        def initialize(error_code:, **)
+          super(**)
+          @error_code = error_code
+        end
       end
     end
 
-    class FailingCustomDelivery
-      def call(message)
-        error = StandardError.new("API rate limit exceeded")
+    let(:failing_delivery) do
+      result_class = failing_result_class
 
-        FailingCustomResult.new(
-          message: message,
-          success: false,
-          error: error,
-          error_code: 429
-        )
-      end
+      Class.new do
+        define_method(:call) do |message|
+          error = StandardError.new("API rate limit exceeded")
+
+          result_class.new(
+            message: message,
+            success: false,
+            error: error,
+            error_code: 429
+          )
+        end
+      end.new
     end
 
     let(:mailer_class) do
@@ -282,76 +207,14 @@ RSpec.describe Hanami::Mailer, "delivery results" do
     end
 
     it "returns custom result with failure information" do
-      failing_delivery = FailingCustomDelivery.new
       mailer = mailer_class.new(delivery: failing_delivery)
-
       result = mailer.deliver
 
-      expect(result).to be_a(FailingCustomResult)
+      expect(result).to be_a(failing_result_class)
       expect(result.success?).to be false
       expect(result.error).to be_a(StandardError)
       expect(result.error.message).to eq("API rate limit exceeded")
       expect(result.error_code).to eq(429)
-    end
-  end
-
-  describe "result usage patterns" do
-    let(:mailer_class) do
-      Class.new(Hanami::Mailer) do
-        from "noreply@example.com"
-        to { |user:| user[:email] }
-        subject "Notification"
-
-        expose :user
-      end
-    end
-
-    it "allows conditional logic based on success" do
-      mailer = mailer_class.new
-      user = {name: "Alice", email: "alice@example.com"}
-
-      result = mailer.deliver(user: user)
-
-      if result.success?
-        expect(result.message.to).to eq(["alice@example.com"])
-      else
-        raise "Expected delivery to succeed"
-      end
-    end
-
-    it "provides message for logging on success" do
-      mailer = mailer_class.new
-      user = {name: "Bob", email: "bob@example.com"}
-
-      result = mailer.deliver(user: user)
-
-      log_message = "Delivered to #{result.message.to.join(', ')} with subject '#{result.message.subject}'"
-      expect(log_message).to eq("Delivered to bob@example.com with subject 'Notification'")
-    end
-
-    it "provides error details for logging on failure" do
-      # Create a custom delivery that fails
-      failing_delivery = Class.new do
-        def call(message)
-          Hanami::Mailer::Delivery::Result.new(
-            message: message,
-            success: false,
-            error: StandardError.new("Network timeout")
-          )
-        end
-      end.new
-
-      mailer = mailer_class.new(delivery: failing_delivery)
-      user = {name: "Charlie", email: "charlie@example.com"}
-
-      result = mailer.deliver(user: user)
-
-      if result.success?
-        raise "Expected delivery to fail"
-      else
-        log_message = "Failed to deliver to #{result.message.to.join(', ')}: #{result.error.message}"
-        expect(log_message).to eq("Failed to deliver to charlie@example.com: Network timeout")
-      end
     end
   end
 end

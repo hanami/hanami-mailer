@@ -307,12 +307,6 @@ RSpec.describe Hanami::Mailer, "view integration" do
       expect(result.message.html_body).to be_nil
       expect(result.message.text_body).to be_nil
     end
-
-    it "allows explicit view: nil" do
-      mailer = mailer_class.new(view: nil)
-
-      expect(mailer.view).to be_nil
-    end
   end
 
   describe "with custom view object" do

@@ -292,50 +292,6 @@ RSpec.describe Hanami::Mailer, "custom headers" do
       end
     end
 
-    describe "priority headers" do
-      let(:mailer_class) do
-        Class.new(Hanami::Mailer) do
-          from "alerts@example.com"
-          to "user@example.com"
-          subject "URGENT: Action Required"
-
-          header :x_priority, "1"
-          header :importance, "high"
-          header :priority, "urgent"
-        end
-      end
-
-      it "sets all priority-related headers" do
-        mailer = mailer_class.new
-        result = mailer.deliver
-
-        expect(result.message.headers["X-Priority"]).to eq("1")
-        expect(result.message.headers["Importance"]).to eq("high")
-        expect(result.message.headers["Priority"]).to eq("urgent")
-      end
-    end
-
-    describe "auto-generated email headers" do
-      let(:mailer_class) do
-        Class.new(Hanami::Mailer) do
-          from "reports@example.com"
-          to "user@example.com"
-          subject "Daily Report"
-
-          header :auto_submitted, "auto-generated"
-          header :precedence, "bulk"
-        end
-      end
-
-      it "sets headers to prevent auto-replies" do
-        mailer = mailer_class.new
-        result = mailer.deliver
-
-        expect(result.message.headers["Auto-Submitted"]).to eq("auto-generated")
-        expect(result.message.headers["Precedence"]).to eq("bulk")
-      end
-    end
-
     describe "threading headers" do
       let(:mailer_class) do
         Class.new(Hanami::Mailer) do

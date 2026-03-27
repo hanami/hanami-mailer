@@ -1,8 +1,9 @@
 # frozen_string_literal: true
 
-$LOAD_PATH.unshift "lib"
 require "hanami-mailer"
 require "fileutils"
+
+Dir[File.join(__dir__, "support", "**", "*.rb")].each { |f| require f }
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|

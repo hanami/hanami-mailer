@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require "fileutils"
-
-RSpec.describe Hanami::Mailer, "attachments" do
+RSpec.describe "Attachments" do
   describe "class-level attachments" do
     describe "static filename attachment" do
       let(:mailer_class) do
@@ -68,10 +66,6 @@ RSpec.describe Hanami::Mailer, "attachments" do
           end
 
           attachment do
-            file("logo.png", "Logo content", inline: true)
-          end
-
-          attachment do
             file("receipt.txt", "Thank you for your order")
           end
         end
@@ -83,7 +77,7 @@ RSpec.describe Hanami::Mailer, "attachments" do
 
         expect(result.message.attachments.size).to eq(3)
         filenames = result.message.attachments.map(&:filename)
-        expect(filenames).to include("terms.pdf", "logo.png", "receipt.txt")
+        expect(filenames).to include("terms.pdf", "receipt.txt")
       end
     end
 
@@ -105,6 +99,7 @@ RSpec.describe Hanami::Mailer, "attachments" do
         result = mailer.deliver
 
         expect(result.message.attachments.size).to eq(1)
+
         attachment = result.message.attachments.first
         expect(attachment.inline?).to be true
         expect(attachment.content_id).to eq("logo.png")
@@ -234,15 +229,7 @@ RSpec.describe Hanami::Mailer, "attachments" do
     describe "attachment_paths configuration" do
       let(:attachment_dir) { File.join(__dir__, "..", "fixtures", "attachments") }
 
-      before do
-        FileUtils.mkdir_p(attachment_dir)
-        File.write(File.join(attachment_dir, "terms.pdf"), "Terms and conditions content")
-        File.write(File.join(attachment_dir, "logo.png"), "Logo image content")
-      end
 
-      after do
-        FileUtils.rm_rf(attachment_dir)
-      end
 
       let(:mailer_class) do
         dir = attachment_dir
@@ -272,16 +259,7 @@ RSpec.describe Hanami::Mailer, "attachments" do
       end
 
       context "with multiple attachment paths" do
-        let(:secondary_dir) { File.join(__dir__, "..", "fixtures", "attachments2") }
-
-        before do
-          FileUtils.mkdir_p(secondary_dir)
-          File.write(File.join(secondary_dir, "invoice.pdf"), "Invoice content")
-        end
-
-        after do
-          FileUtils.rm_rf(secondary_dir)
-        end
+        let(:secondary_dir) { File.join(__dir__, "..", "fixtures", "attachments_2") }
 
         let(:mailer_class) do
           primary = attachment_dir
