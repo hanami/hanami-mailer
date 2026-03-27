@@ -42,8 +42,13 @@ module Hanami
     # This wraps initialization to provide automatic view building from exposures.
     # The ViewIntegration module adds all view-related settings and capabilities.
     #
-    # Note: When Hanami.bundled?("hanami-view") becomes available, we can use that instead of
-    # defined?(Hanami::View) for a more robust check.
+    # Attempt to require hanami-view so users don't need to worry about load order.
+    # View-building behavior can be disabled per-class via `config.integrate_view = false`.
+    begin
+      require "hanami/view"
+    rescue LoadError => exception
+      raise unless exception.path == "hanami/view"
+    end
     if defined?(Hanami::View)
       require_relative "mailer/view_integration"
       include ViewIntegration

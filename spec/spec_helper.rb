@@ -2,6 +2,7 @@
 
 $LOAD_PATH.unshift "lib"
 require "hanami-mailer"
+require "fileutils"
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|

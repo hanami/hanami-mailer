@@ -22,7 +22,6 @@ Gem::Specification.new do |spec|
   spec.metadata["rubygems_mfa_required"] = "true"
   spec.required_ruby_version = ">= 3.0"
 
-  spec.add_dependency "hanami-view", "~> 2.1"
   spec.add_dependency "dry-configurable", "~> 1.0"
   spec.add_dependency "mail", "~> 2.7"
   spec.add_dependency "zeitwerk"
@@ -31,8 +30,4 @@ Gem::Specification.new do |spec|
   spec.add_dependency "net-smtp", "~> 0.3"
   spec.add_dependency "net-pop",  "~> 0.1"
   spec.add_dependency "net-imap", "~> 0.2"
-
-  spec.add_development_dependency "rake",    "~> 13"
-  spec.add_development_dependency "rspec",   "~> 3.9"
-  spec.add_development_dependency "rubocop", "~> 1.0"
 end

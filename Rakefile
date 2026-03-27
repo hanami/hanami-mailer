@@ -3,7 +3,7 @@
 require "rake"
 require "bundler/gem_tasks"
 require "rspec/core/rake_task"
-require "hanami/devtools/rake_tasks"
+
 
 namespace :spec do
   RSpec::Core::RakeTask.new(:unit) do |task|
@@ -15,8 +15,10 @@ namespace :spec do
 
   desc "Run isolation tests"
   task :isolation do
-    # Run each isolation test in its own Ruby process, using with_unbundled_env to ensure bundler
-    # doesn't load extra gems.
+    # Run each isolation test with plain `ruby` (not `bundle exec`) inside an unbundled env.
+    # This ensures Bundler hasn't pre-activated all gem groups — isolation_helper then calls
+    # Bundler.setup with only the groups we want, intentionally excluding :integrations so
+    # hanami-view is not available. Using `rspec` or `bundle exec` here would defeat that.
     Dir["spec/isolation/**/*_spec.rb"].each do |test_file|
       puts "\n\nRunning: #{test_file}"
       Bundler.with_unbundled_env do

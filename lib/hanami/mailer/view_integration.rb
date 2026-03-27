@@ -14,6 +14,10 @@ module Hanami
           # Prepend the initializer module to wrap initialization
           prepend Initializer
 
+          # Whether to automatically build views from exposures
+          # Set to false to disable automatic view integration behavior
+          setting :integrate_view, default: true
+
           # Base path for template inference
           # e.g., "mailers" will strip "mailers/" from "Mailers::WelcomeMailer" -> "welcome_mailer"
           setting :template_inference_base, default: nil
@@ -41,7 +45,8 @@ module Hanami
       # @api private
       module Initializer
         # @api private
-        def initialize(view: DefaultViewBuilder.call(self), **)
+        def initialize(view: nil, **)
+          view ||= DefaultViewBuilder.call(self) if self.class.config.integrate_view
           super
         end
       end

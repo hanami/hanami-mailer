@@ -1,13 +1,25 @@
 # frozen_string_literal: true
 
 source "https://rubygems.org"
+
+eval_gemfile "Gemfile.devtools"
+
 gemspec
 
-unless ENV["CI"]
-  gem "byebug", require: false, platforms: :mri
-  gem "yard",   require: false
+group :tools do
+  gem "debug", platform: :mri
 end
 
-gem "hanami-view", "~> 2.1", require: false, git: "https://github.com/hanami/view.git", branch: "main"
+group :docs do
+  gem "redcarpet", platform: :mri
+  gem "yard"
+  gem "yard-junk"
+end
 
-gem "hanami-devtools", require: false, git: "https://github.com/hanami/devtools.git", branch: "main"
+group :integrations do
+  gem "hanami-view", github: "hanami/view", branch: "main"
+end
+
+group :test do
+  gem "rspec", "~> 3.9"
+end
