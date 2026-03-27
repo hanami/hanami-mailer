@@ -10,7 +10,7 @@ module Hanami
       attr_reader :from, :to, :cc, :bcc, :reply_to, :return_path, :subject
 
       # @api private
-      attr_reader :html_body, :text_body, :attachments, :headers, :charset
+      attr_reader :html_body, :text_body, :attachments, :headers, :charset, :delivery_options
 
       # Initialize a new message
       #
@@ -26,10 +26,12 @@ module Hanami
       # @param attachments [Array<Attachment>] array of attachments
       # @param headers [Hash] additional email headers
       # @param charset [String] character encoding (default: "UTF-8")
+      # @param delivery_options [Hash] delivery-method-specific options
       #
       # @api private
       def initialize(from:, subject:, to: nil, cc: nil, bcc: nil, reply_to: nil, return_path: nil,
-                     html_body: nil, text_body: nil, attachments: [], headers: {}, charset: "UTF-8")
+                     html_body: nil, text_body: nil, attachments: [], headers: {}, charset: "UTF-8",
+                     delivery_options: {})
         @from = normalize_addresses(from)
         @to = normalize_addresses(to)
         @cc = normalize_addresses(cc)
@@ -42,6 +44,7 @@ module Hanami
         @attachments = attachments
         @headers = headers
         @charset = charset
+        @delivery_options = delivery_options
 
         validate_recipients!
       end
@@ -64,7 +67,8 @@ module Hanami
           text_body: text_body,
           attachments: attachments,
           headers: headers,
-          charset: charset
+          charset: charset,
+          delivery_options: delivery_options
         }
       end
 

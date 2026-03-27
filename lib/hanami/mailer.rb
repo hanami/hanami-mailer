@@ -162,6 +162,34 @@ module Hanami
         @attachments ||= DSL::Attachments.new
       end
 
+      # Define a delivery option
+      #
+      # Delivery options are delivery-method-specific parameters that can be used
+      # to customize how a message is sent. For example, a third-party email service
+      # might support scheduled sending, priority levels, or tracking options.
+      #
+      # @param name [Symbol] the option name
+      # @param value [Object, nil] optional static value
+      # @param block [Proc] optional block for computing the value
+      #
+      # @api public
+      #
+      # @example Static value
+      #   delivery_option :track_opens, true
+      #
+      # @example Dynamic value with block
+      #   delivery_option :send_at do |scheduled_time:|
+      #     scheduled_time
+      #   end
+      def delivery_option(name, value = nil, &block)
+        delivery_options.add(name, block, default: value)
+      end
+
+      # @api private
+      def delivery_options
+        @delivery_options ||= DSL::Exposures.new
+      end
+
       # @api private
       def inherited(subclass)
         super
@@ -169,8 +197,10 @@ module Hanami
         subclass.instance_variable_set(:@headers, headers.dup)
         subclass.instance_variable_set(:@exposures, exposures.dup)
         subclass.instance_variable_set(:@attachments, attachments.dup)
+        subclass.instance_variable_set(:@delivery_options, delivery_options.dup)
       end
     end
+
     # @api private
     attr_reader :view, :delivery
 
@@ -211,7 +241,7 @@ module Hanami
     #
     # @api public
     def prepare(headers: {}, attachments: nil, **input)
-      # Collect header overrides (compact to remove nil values)
+      # Collect header overrides
       header_overrides = headers.compact
 
       # Evaluate exposures
@@ -219,6 +249,9 @@ module Hanami
 
       # Merge input with evaluated locals for use in header evaluation
       context = input.merge(locals)
+
+      # TODO: I'm wondering whether we actually want to pass `context` to `headers` and
+      # `delivery_options`
 
       # Evaluate headers (from, to, cc, bcc, reply_to, return_path, subject, and custom headers)
       headers = self.class.headers.bind(self).call(context)
@@ -253,8 +286,9 @@ module Hanami
         attachment_objects.concat(runtime_attachments)
       end
 
-      # Check for duplicate filenames
       ensure_unique_attachments attachment_objects
+
+      delivery_options = self.class.delivery_options.bind(self).call(context)
 
       # Build message
       Message.new(
@@ -265,10 +299,11 @@ module Hanami
         reply_to: headers[:reply_to],
         return_path: headers[:return_path],
         subject: headers[:subject],
-        html_body: html_body,
-        text_body: text_body,
+        html_body:,
+        text_body:,
         attachments: attachment_objects,
-        headers: normalized_custom_headers
+        headers: normalized_custom_headers,
+        delivery_options:
       )
     end
     # rubocop:enable Metrics/AbcSize
