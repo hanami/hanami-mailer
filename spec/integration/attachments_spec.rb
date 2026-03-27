@@ -22,10 +22,10 @@ RSpec.describe Hanami::Mailer, "attachments" do
 
     it "attaches file with static filename" do
       mailer = mailer_class.new
-      message = mailer.deliver
+      result = mailer.deliver
 
-      expect(message.attachments.size).to eq(1)
-      attachment = message.attachments.first
+      expect(result.message.attachments.size).to eq(1)
+      attachment = result.message.attachments.first
       expect(attachment.filename).to eq("invoice.pdf")
     end
   end
@@ -50,10 +50,10 @@ RSpec.describe Hanami::Mailer, "attachments" do
 
     it "generates attachment dynamically" do
       mailer = mailer_class.new
-      message = mailer.deliver(invoice_number: 12_345)
+      result = mailer.deliver(invoice_number: 12_345)
 
-      expect(message.attachments.size).to eq(1)
-      attachment = message.attachments.first
+      expect(result.message.attachments.size).to eq(1)
+      attachment = result.message.attachments.first
       expect(attachment.filename).to eq("invoice-12345.pdf")
       expect(attachment.content).to eq("PDF content for invoice 12345")
     end
@@ -82,10 +82,10 @@ RSpec.describe Hanami::Mailer, "attachments" do
 
     it "includes all attachments" do
       mailer = mailer_class.new
-      message = mailer.deliver
+      result = mailer.deliver
 
-      expect(message.attachments.size).to eq(3)
-      filenames = message.attachments.map(&:filename)
+      expect(result.message.attachments.size).to eq(3)
+      filenames = result.message.attachments.map(&:filename)
       expect(filenames).to include("terms.pdf", "logo.png", "receipt.txt")
     end
   end
@@ -105,10 +105,10 @@ RSpec.describe Hanami::Mailer, "attachments" do
 
     it "marks attachment as inline" do
       mailer = mailer_class.new
-      message = mailer.deliver
+      result = mailer.deliver
 
-      expect(message.attachments.size).to eq(1)
-      attachment = message.attachments.first
+      expect(result.message.attachments.size).to eq(1)
+      attachment = result.message.attachments.first
       expect(attachment.inline?).to be true
       expect(attachment.content_id).to eq("logo.png")
     end
@@ -133,9 +133,9 @@ RSpec.describe Hanami::Mailer, "attachments" do
 
     it "uses specified content type" do
       mailer = mailer_class.new
-      message = mailer.deliver
+      result = mailer.deliver
 
-      attachment = message.attachments.first
+      attachment = result.message.attachments.first
       expect(attachment.content_type).to match(/text\/csv/)
     end
   end
@@ -164,9 +164,9 @@ RSpec.describe Hanami::Mailer, "attachments" do
 
     it "calls instance method to generate attachment" do
       mailer = mailer_class.new
-      message = mailer.deliver(report_id: 999)
+      result = mailer.deliver(report_id: 999)
 
-      attachment = message.attachments.first
+      attachment = result.message.attachments.first
       expect(attachment.filename).to eq("report-999.pdf")
       expect(attachment.content).to eq("Report content for 999")
     end
@@ -191,12 +191,12 @@ RSpec.describe Hanami::Mailer, "attachments" do
 
     it "attaches all returned files" do
       mailer = mailer_class.new
-      message = mailer.deliver(file_count: 3)
+      result = mailer.deliver(file_count: 3)
 
-      expect(message.attachments.size).to eq(3)
-      expect(message.attachments[0].filename).to eq("file-0.txt")
-      expect(message.attachments[1].filename).to eq("file-1.txt")
-      expect(message.attachments[2].filename).to eq("file-2.txt")
+      expect(result.message.attachments.size).to eq(3)
+      expect(result.message.attachments[0].filename).to eq("file-0.txt")
+      expect(result.message.attachments[1].filename).to eq("file-1.txt")
+      expect(result.message.attachments[2].filename).to eq("file-2.txt")
     end
   end
 
@@ -220,12 +220,12 @@ RSpec.describe Hanami::Mailer, "attachments" do
 
     it "automatically detects MIME types from filename extensions" do
       mailer = mailer_class.new
-      message = mailer.deliver
+      result = mailer.deliver
 
-      pdf = message.attachments.find { |a| a.filename == "doc.pdf" }
-      jpg = message.attachments.find { |a| a.filename == "image.jpg" }
-      xlsx = message.attachments.find { |a| a.filename == "sheet.xlsx" }
-      txt = message.attachments.find { |a| a.filename == "data.txt" }
+      pdf = result.message.attachments.find { |a| a.filename == "doc.pdf" }
+      jpg = result.message.attachments.find { |a| a.filename == "image.jpg" }
+      xlsx = result.message.attachments.find { |a| a.filename == "sheet.xlsx" }
+      txt = result.message.attachments.find { |a| a.filename == "data.txt" }
 
       expect(pdf.content_type).to match(/application\/pdf/)
       expect(jpg.content_type).to match(/image\/jpeg/)
@@ -263,12 +263,12 @@ RSpec.describe Hanami::Mailer, "attachments" do
 
     it "finds and reads attachment files from configured paths" do
       mailer = mailer_class.new
-      message = mailer.deliver
+      result = mailer.deliver
 
-      expect(message.attachments.size).to eq(2)
+      expect(result.message.attachments.size).to eq(2)
 
-      terms = message.attachments.find { |a| a.filename == "terms.pdf" }
-      logo = message.attachments.find { |a| a.filename == "logo.png" }
+      terms = result.message.attachments.find { |a| a.filename == "terms.pdf" }
+      logo = result.message.attachments.find { |a| a.filename == "logo.png" }
 
       expect(terms.content).to eq("Terms and conditions content")
       expect(logo.content).to eq("Logo image content")
@@ -303,12 +303,12 @@ RSpec.describe Hanami::Mailer, "attachments" do
 
       it "searches paths in order and finds files" do
         mailer = mailer_class.new
-        message = mailer.deliver
+        result = mailer.deliver
 
-        expect(message.attachments.size).to eq(2)
+        expect(result.message.attachments.size).to eq(2)
 
-        terms = message.attachments.find { |a| a.filename == "terms.pdf" }
-        invoice = message.attachments.find { |a| a.filename == "invoice.pdf" }
+        terms = result.message.attachments.find { |a| a.filename == "terms.pdf" }
+        invoice = result.message.attachments.find { |a| a.filename == "invoice.pdf" }
 
         expect(terms.content).to eq("Terms and conditions content")
         expect(invoice.content).to eq("Invoice content")

@@ -16,14 +16,14 @@ RSpec.describe Hanami::Mailer, "runtime attachments" do
 
     it "accepts runtime attachments as hashes" do
       mailer = mailer_class.new
-      message = mailer.deliver(
+      result = mailer.deliver(
         attachments: [
           { filename: "report.pdf", content: "PDF content" }
         ]
       )
 
-      expect(message.attachments.size).to eq(1)
-      attachment = message.attachments.first
+      expect(result.message.attachments.size).to eq(1)
+      attachment = result.message.attachments.first
       expect(attachment.filename).to eq("report.pdf")
       expect(attachment.content).to eq("PDF content")
     end
@@ -32,19 +32,19 @@ RSpec.describe Hanami::Mailer, "runtime attachments" do
       mailer = mailer_class.new
       attachment_data = Hanami::Mailer.file("invoice.pdf", "Invoice content")
 
-      message = mailer.deliver(
+      result = mailer.deliver(
         attachments: [attachment_data]
       )
 
-      expect(message.attachments.size).to eq(1)
-      attachment = message.attachments.first
+      expect(result.message.attachments.size).to eq(1)
+      attachment = result.message.attachments.first
       expect(attachment.filename).to eq("invoice.pdf")
       expect(attachment.content).to eq("Invoice content")
     end
 
     it "accepts multiple runtime attachments" do
       mailer = mailer_class.new
-      message = mailer.deliver(
+      result = mailer.deliver(
         attachments: [
           { filename: "file1.txt", content: "Content 1" },
           { filename: "file2.txt", content: "Content 2" },
@@ -52,48 +52,48 @@ RSpec.describe Hanami::Mailer, "runtime attachments" do
         ]
       )
 
-      expect(message.attachments.size).to eq(3)
-      filenames = message.attachments.map(&:filename)
+      expect(result.message.attachments.size).to eq(3)
+      filenames = result.message.attachments.map(&:filename)
       expect(filenames).to eq(["file1.txt", "file2.txt", "file3.txt"])
     end
 
     it "accepts runtime attachments with content_type" do
       mailer = mailer_class.new
-      message = mailer.deliver(
+      result = mailer.deliver(
         attachments: [
           { filename: "data.csv", content: "a,b,c", content_type: "text/csv" }
         ]
       )
 
-      attachment = message.attachments.first
+      attachment = result.message.attachments.first
       expect(attachment.content_type).to match(/text\/csv/)
     end
 
     it "accepts runtime attachments with inline flag" do
       mailer = mailer_class.new
-      message = mailer.deliver(
+      result = mailer.deliver(
         attachments: [
           { filename: "logo.png", content: "PNG data", inline: true }
         ]
       )
 
-      attachment = message.attachments.first
+      attachment = result.message.attachments.first
       expect(attachment.inline?).to be true
       expect(attachment.content_id).to eq("logo.png")
     end
 
     it "works with nil attachments parameter" do
       mailer = mailer_class.new
-      message = mailer.deliver(attachments: nil)
+      result = mailer.deliver(attachments: nil)
 
-      expect(message.attachments).to be_empty
+      expect(result.message.attachments).to be_empty
     end
 
     it "works with empty attachments array" do
       mailer = mailer_class.new
-      message = mailer.deliver(attachments: [])
+      result = mailer.deliver(attachments: [])
 
-      expect(message.attachments).to be_empty
+      expect(result.message.attachments).to be_empty
     end
   end
 
@@ -112,14 +112,14 @@ RSpec.describe Hanami::Mailer, "runtime attachments" do
 
     it "includes both class-level and runtime attachments" do
       mailer = mailer_class.new
-      message = mailer.deliver(
+      result = mailer.deliver(
         attachments: [
           { filename: "invoice.pdf", content: "Invoice content" }
         ]
       )
 
-      expect(message.attachments.size).to eq(2)
-      filenames = message.attachments.map(&:filename)
+      expect(result.message.attachments.size).to eq(2)
+      filenames = result.message.attachments.map(&:filename)
       expect(filenames).to include("terms.pdf", "invoice.pdf")
     end
 
@@ -137,15 +137,15 @@ RSpec.describe Hanami::Mailer, "runtime attachments" do
       end
 
       mailer = dynamic_mailer.new
-      message = mailer.deliver(
+      result = mailer.deliver(
         report_id: 123,
         attachments: [
           { filename: "cover-letter.pdf", content: "Cover letter" }
         ]
       )
 
-      expect(message.attachments.size).to eq(2)
-      filenames = message.attachments.map(&:filename)
+      expect(result.message.attachments.size).to eq(2)
+      filenames = result.message.attachments.map(&:filename)
       expect(filenames).to include("report-123.pdf", "cover-letter.pdf")
     end
   end
@@ -290,14 +290,14 @@ RSpec.describe Hanami::Mailer, "runtime attachments" do
         mailer = mailer_class.new
 
         expect {
-          message = mailer.deliver(
+          result = mailer.deliver(
             attachments: [
               { filename: "invoice.pdf", content: "Invoice" },
               { filename: "receipt.pdf", content: "Receipt" }
             ]
           )
 
-          expect(message.attachments.size).to eq(3)
+          expect(result.message.attachments.size).to eq(3)
         }.not_to raise_error
       end
     end

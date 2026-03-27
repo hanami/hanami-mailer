@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "net/smtp"
+
 module Hanami
   class Mailer
     module Delivery
@@ -24,8 +26,20 @@ module Hanami
         def call(message)
           mail = to_mail(message)
           mail.delivery_method(:smtp, @options)
-          mail.deliver!
-          mail
+
+          exception = nil
+          begin
+            mail.deliver!
+          rescue Net::SMTPError => e
+            exception = e
+          end
+
+          Result.new(
+            message: message,
+            response: mail,
+            success: exception.nil?,
+            error: exception
+          )
         end
 
         private

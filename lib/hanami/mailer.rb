@@ -191,7 +191,7 @@ module Hanami
     # @param attachments [Array<Hash, AttachmentData>, nil] optional runtime attachments
     # @param input [Hash] input data for exposures and rendering
     #
-    # @return [Mail::Message]
+    # @return [Delivery::Result]
     #
     # @api public
     def deliver(headers: {}, attachments: nil, **input)

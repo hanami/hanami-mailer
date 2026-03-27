@@ -3,21 +3,21 @@
 module Hanami
   class Mailer
     module Delivery
-      # Test delivery method that stores messages in memory
+      # Test delivery method that stores delivery results in memory
       #
       # @api public
       class Test
         class << self
-          # Returns all delivered messages
+          # Returns all delivery results
           #
-          # @return [Array<Message>]
+          # @return [Array<Delivery::Result>]
           #
           # @api public
           def deliveries
             @deliveries ||= []
           end
 
-          # Clear all delivered messages
+          # Clear all delivery results
           #
           # @api public
           def clear
@@ -25,14 +25,28 @@ module Hanami
           end
         end
 
-        # Deliver a message by storing it in memory
+        # Deliver a message by storing a result in memory
         #
         # @param message [Message] the message to deliver
-        # @return [Message] the delivered message
+        # @return [Delivery::Result]
         #
         # @api private
         def call(message)
-          self.class.deliveries << message
+          result = Result.new(message: message)
+          self.class.deliveries << result
+          result
+        end
+
+        # Preview a message without delivering it.
+        #
+        # Returns the message unchanged. Delivery methods that support service-specific preview
+        # logic (e.g. resolving a template from a remote API) can override this method.
+        #
+        # @param message [Message] the message to preview
+        # @return [Message]
+        #
+        # @api public
+        def preview(message)
           message
         end
       end

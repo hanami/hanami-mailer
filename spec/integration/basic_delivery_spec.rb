@@ -16,12 +16,13 @@ RSpec.describe Hanami::Mailer, "basic delivery" do
 
     it "delivers email with static metadata" do
       mailer = mailer_class.new
-      message = mailer.deliver
+      result = mailer.deliver
 
-      expect(message).to be_a(Hanami::Mailer::Message)
-      expect(message.from).to eq(["noreply@example.com"])
-      expect(message.to).to eq(["user@example.com"])
-      expect(message.subject).to eq("Welcome to our app")
+      expect(result).to be_a(Hanami::Mailer::Delivery::Result)
+      expect(result.success?).to be true
+      expect(result.message.from).to eq(["noreply@example.com"])
+      expect(result.message.to).to eq(["user@example.com"])
+      expect(result.message.subject).to eq("Welcome to our app")
     end
 
     it "stores delivered mail in test delivery" do
@@ -29,8 +30,9 @@ RSpec.describe Hanami::Mailer, "basic delivery" do
       mailer.deliver
 
       expect(Hanami::Mailer::Delivery::Test.deliveries.size).to eq(1)
-      message = Hanami::Mailer::Delivery::Test.deliveries.first
-      expect(message.subject).to eq("Welcome to our app")
+      result = Hanami::Mailer::Delivery::Test.deliveries.first
+      expect(result).to be_a(Hanami::Mailer::Delivery::Result)
+      expect(result.message.subject).to eq("Welcome to our app")
     end
   end
 
@@ -49,10 +51,10 @@ RSpec.describe Hanami::Mailer, "basic delivery" do
       mailer = mailer_class.new
       user = {name: "Alice", email: "alice@example.com"}
 
-      message = mailer.deliver(user: user)
+      result = mailer.deliver(user: user)
 
-      expect(message.to).to eq(["alice@example.com"])
-      expect(message.subject).to eq("Welcome, Alice!")
+      expect(result.message.to).to eq(["alice@example.com"])
+      expect(result.message.subject).to eq("Welcome, Alice!")
     end
   end
 
@@ -69,11 +71,11 @@ RSpec.describe Hanami::Mailer, "basic delivery" do
 
     it "delivers to multiple recipients" do
       mailer = mailer_class.new
-      message = mailer.deliver
+      result = mailer.deliver
 
-      expect(message.to).to eq(["user1@example.com", "user2@example.com"])
-      expect(message.cc).to eq(["manager@example.com"])
-      expect(message.bcc).to eq(["admin@example.com"])
+      expect(result.message.to).to eq(["user1@example.com", "user2@example.com"])
+      expect(result.message.cc).to eq(["manager@example.com"])
+      expect(result.message.bcc).to eq(["admin@example.com"])
     end
   end
 
@@ -127,10 +129,10 @@ RSpec.describe Hanami::Mailer, "basic delivery" do
       mailer = mailer_class.new
       user = {name: "Charlie", email: "charlie@example.com"}
 
-      message = mailer.deliver(user: user)
+      result = mailer.deliver(user: user)
 
-      expect(message.to).to eq(["charlie@example.com"])
-      expect(message.subject).to eq("Welcome, Charlie!")
+      expect(result.message.to).to eq(["charlie@example.com"])
+      expect(result.message.subject).to eq("Welcome, Charlie!")
     end
   end
 
@@ -160,20 +162,20 @@ RSpec.describe Hanami::Mailer, "basic delivery" do
       mailer = mailer_class.new
       user = {name: "Diana", email: "diana@example.com", vip: true}
 
-      message = mailer.deliver(user: user)
+      result = mailer.deliver(user: user)
 
-      expect(message.to).to eq(["diana@example.com"])
-      expect(message.subject).to eq("Greetings, Diana!")
+      expect(result.message.to).to eq(["diana@example.com"])
+      expect(result.message.subject).to eq("Greetings, Diana!")
     end
 
     it "works with non-vip users" do
       mailer = mailer_class.new
       user = {name: "Eve", email: "eve@example.com", vip: false}
 
-      message = mailer.deliver(user: user)
+      result = mailer.deliver(user: user)
 
-      expect(message.to).to eq(["eve@example.com"])
-      expect(message.subject).to eq("Hello, Eve!")
+      expect(result.message.to).to eq(["eve@example.com"])
+      expect(result.message.subject).to eq("Hello, Eve!")
     end
   end
 
@@ -204,9 +206,9 @@ RSpec.describe Hanami::Mailer, "basic delivery" do
 
     it "uses UTF-8 by default" do
       mailer = mailer_class.new
-      message = mailer.deliver
+      result = mailer.deliver
 
-      expect(message.charset).to eq("UTF-8")
+      expect(result.message.charset).to eq("UTF-8")
     end
   end
 
@@ -222,9 +224,9 @@ RSpec.describe Hanami::Mailer, "basic delivery" do
 
     it "sets reply_to address" do
       mailer = mailer_class.new
-      message = mailer.deliver
+      result = mailer.deliver
 
-      expect(message.reply_to).to eq(["support@example.com"])
+      expect(result.message.reply_to).to eq(["support@example.com"])
     end
   end
 end
