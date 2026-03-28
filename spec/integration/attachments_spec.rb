@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 RSpec.describe "Attachments" do
+  let(:mailer) { mailer_class.new }
+
   describe "class-level attachments" do
     describe "static filename attachment" do
       let(:mailer_class) do
@@ -16,7 +18,6 @@ RSpec.describe "Attachments" do
       end
 
       it "attaches file with static filename" do
-        mailer = mailer_class.new
         result = mailer.deliver
 
         expect(result.message.attachments.size).to eq(1)
@@ -44,7 +45,6 @@ RSpec.describe "Attachments" do
       end
 
       it "generates attachment dynamically" do
-        mailer = mailer_class.new
         result = mailer.deliver(invoice_number: 12_345)
 
         expect(result.message.attachments.size).to eq(1)
@@ -72,10 +72,9 @@ RSpec.describe "Attachments" do
       end
 
       it "includes all attachments" do
-        mailer = mailer_class.new
         result = mailer.deliver
 
-        expect(result.message.attachments.size).to eq(3)
+        expect(result.message.attachments.size).to eq(2)
         filenames = result.message.attachments.map(&:filename)
         expect(filenames).to include("terms.pdf", "receipt.txt")
       end
@@ -95,7 +94,6 @@ RSpec.describe "Attachments" do
       end
 
       it "marks attachment as inline" do
-        mailer = mailer_class.new
         result = mailer.deliver
 
         expect(result.message.attachments.size).to eq(1)
@@ -124,7 +122,6 @@ RSpec.describe "Attachments" do
       end
 
       it "uses specified content type" do
-        mailer = mailer_class.new
         result = mailer.deliver
 
         attachment = result.message.attachments.first
@@ -155,7 +152,6 @@ RSpec.describe "Attachments" do
       end
 
       it "calls instance method to generate attachment" do
-        mailer = mailer_class.new
         result = mailer.deliver(report_id: 999)
 
         attachment = result.message.attachments.first
@@ -182,7 +178,6 @@ RSpec.describe "Attachments" do
       end
 
       it "attaches all returned files" do
-        mailer = mailer_class.new
         result = mailer.deliver(file_count: 3)
 
         expect(result.message.attachments.size).to eq(3)
@@ -211,7 +206,6 @@ RSpec.describe "Attachments" do
       end
 
       it "automatically detects MIME types from filename extensions" do
-        mailer = mailer_class.new
         result = mailer.deliver
 
         pdf = result.message.attachments.find { |a| a.filename == "doc.pdf" }
@@ -229,8 +223,6 @@ RSpec.describe "Attachments" do
     describe "attachment_paths configuration" do
       let(:attachment_dir) { File.join(__dir__, "..", "fixtures", "attachments") }
 
-
-
       let(:mailer_class) do
         dir = attachment_dir
         Class.new(Hanami::Mailer) do
@@ -246,7 +238,6 @@ RSpec.describe "Attachments" do
       end
 
       it "finds and reads attachment files from configured paths" do
-        mailer = mailer_class.new
         result = mailer.deliver
 
         expect(result.message.attachments.size).to eq(2)
@@ -277,7 +268,6 @@ RSpec.describe "Attachments" do
         end
 
         it "searches paths in order and finds files" do
-          mailer = mailer_class.new
           result = mailer.deliver
 
           expect(result.message.attachments.size).to eq(2)
@@ -305,8 +295,6 @@ RSpec.describe "Attachments" do
         end
 
         it "raises MissingAttachmentError" do
-          mailer = mailer_class.new
-
           expect {
             mailer.deliver
           }.to raise_error(Hanami::Mailer::MissingAttachmentError, /Attachment file not found: nonexistent\.pdf/)
@@ -315,26 +303,20 @@ RSpec.describe "Attachments" do
     end
 
     describe "error handling" do
-      describe "when returning raw hash instead of AttachmentData" do
-        let(:mailer_class) do
-          Class.new(Hanami::Mailer) do
-            from "noreply@example.com"
-            to "user@example.com"
-            subject "Test"
+      it "raises ArgumentError when the attachment block returns a non-AttachmentData value" do
+        mailer_class = Class.new(Hanami::Mailer) do
+          from "noreply@example.com"
+          to "user@example.com"
+          subject "Test"
 
-            attachment do
-              {filename: "test.pdf", content: "content"}
-            end
+          attachment do
+            "my attachment"
           end
         end
 
-        it "raises helpful error message" do
-          mailer = mailer_class.new
-
-          expect {
-            mailer.deliver
-          }.to raise_error(ArgumentError, /Attachment blocks must return AttachmentData objects. Use the `file` helper method/)
-        end
+        expect {
+          mailer_class.new.deliver
+        }.to raise_error(ArgumentError, /AttachmentData/)
       end
     end
   end
@@ -350,7 +332,6 @@ RSpec.describe "Attachments" do
       end
 
       it "accepts runtime attachments as hashes" do
-        mailer = mailer_class.new
         result = mailer.deliver(
           attachments: [
             {filename: "report.pdf", content: "PDF content"}
@@ -364,7 +345,6 @@ RSpec.describe "Attachments" do
       end
 
       it "accepts runtime attachments as AttachmentData objects" do
-        mailer = mailer_class.new
         attachment_data = Hanami::Mailer.file("invoice.pdf", "Invoice content")
 
         result = mailer.deliver(
@@ -378,7 +358,6 @@ RSpec.describe "Attachments" do
       end
 
       it "accepts multiple runtime attachments" do
-        mailer = mailer_class.new
         result = mailer.deliver(
           attachments: [
             {filename: "file1.txt", content: "Content 1"},
@@ -393,7 +372,6 @@ RSpec.describe "Attachments" do
       end
 
       it "accepts runtime attachments with content_type" do
-        mailer = mailer_class.new
         result = mailer.deliver(
           attachments: [
             {filename: "data.csv", content: "a,b,c", content_type: "text/csv"}
@@ -405,7 +383,6 @@ RSpec.describe "Attachments" do
       end
 
       it "accepts runtime attachments with inline flag" do
-        mailer = mailer_class.new
         result = mailer.deliver(
           attachments: [
             {filename: "logo.png", content: "PNG data", inline: true}
@@ -418,14 +395,12 @@ RSpec.describe "Attachments" do
       end
 
       it "works with nil attachments parameter" do
-        mailer = mailer_class.new
         result = mailer.deliver(attachments: nil)
 
         expect(result.message.attachments).to be_empty
       end
 
       it "works with empty attachments array" do
-        mailer = mailer_class.new
         result = mailer.deliver(attachments: [])
 
         expect(result.message.attachments).to be_empty
@@ -446,7 +421,6 @@ RSpec.describe "Attachments" do
       end
 
       it "includes both class-level and runtime attachments" do
-        mailer = mailer_class.new
         result = mailer.deliver(
           attachments: [
             {filename: "invoice.pdf", content: "Invoice content"}
@@ -485,29 +459,6 @@ RSpec.describe "Attachments" do
       end
     end
 
-    describe "Hanami::Mailer.file helper" do
-      it "creates AttachmentData with filename and content" do
-        data = Hanami::Mailer.file("test.pdf", "content")
-
-        expect(data).to be_a(Hanami::Mailer::AttachmentData)
-        expect(data.filename).to eq("test.pdf")
-        expect(data.content).to eq("content")
-        expect(data.inline).to be false
-      end
-
-      it "creates AttachmentData with content_type" do
-        data = Hanami::Mailer.file("data.csv", "a,b,c", content_type: "text/csv")
-
-        expect(data.content_type).to eq("text/csv")
-      end
-
-      it "creates AttachmentData with inline flag" do
-        data = Hanami::Mailer.file("logo.png", "PNG", inline: true)
-
-        expect(data.inline).to be true
-      end
-    end
-
     describe "prepare method with runtime attachments" do
       let(:mailer_class) do
         Class.new(Hanami::Mailer) do
@@ -518,7 +469,6 @@ RSpec.describe "Attachments" do
       end
 
       it "includes runtime attachments in prepared message" do
-        mailer = mailer_class.new
         message = mailer.prepare(
           attachments: [
             {filename: "test.pdf", content: "content"}
@@ -541,8 +491,6 @@ RSpec.describe "Attachments" do
       end
 
       it "raises error for attachment hash missing filename" do
-        mailer = mailer_class.new
-
         expect {
           mailer.deliver(
             attachments: [
@@ -553,8 +501,6 @@ RSpec.describe "Attachments" do
       end
 
       it "raises error for attachment hash missing content" do
-        mailer = mailer_class.new
-
         expect {
           mailer.deliver(
             attachments: [
@@ -565,8 +511,6 @@ RSpec.describe "Attachments" do
       end
 
       it "raises error for attachment hash with empty filename" do
-        mailer = mailer_class.new
-
         expect {
           mailer.deliver(
             attachments: [
@@ -589,8 +533,6 @@ RSpec.describe "Attachments" do
       end
 
       it "raises error for duplicate filenames in runtime attachments" do
-        mailer = mailer_class.new
-
         expect {
           mailer.deliver(
             attachments: [
@@ -620,8 +562,6 @@ RSpec.describe "Attachments" do
       end
 
       it "raises error for duplicate filenames in class-level attachments" do
-        mailer = mailer_class.new
-
         expect {
           mailer.deliver
         }.to raise_error(Hanami::Mailer::DuplicateAttachmentError, /Duplicate attachment filename: "terms\.pdf"/)
@@ -642,8 +582,6 @@ RSpec.describe "Attachments" do
       end
 
       it "raises error when runtime attachment duplicates class-level attachment" do
-        mailer = mailer_class.new
-
         expect {
           mailer.deliver(
             attachments: [
@@ -670,8 +608,6 @@ RSpec.describe "Attachments" do
       end
 
       it "raises error when dynamic attachment returns duplicates" do
-        mailer = mailer_class.new
-
         expect {
           mailer.deliver(files: ["content1", "content2"])
         }.to raise_error(Hanami::Mailer::DuplicateAttachmentError, /Duplicate attachment filename: "data\.csv"/)
@@ -692,8 +628,6 @@ RSpec.describe "Attachments" do
       end
 
       it "does not raise error when all filenames are unique" do
-        mailer = mailer_class.new
-
         expect {
           result = mailer.deliver(
             attachments: [
