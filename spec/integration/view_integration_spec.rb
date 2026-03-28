@@ -321,16 +321,8 @@ RSpec.describe "View integration" do
     end
   end
 
-  describe "view rendering errors" do
-    let(:failing_view) {
-      Class.new {
-        def call(format:, **)
-          raise StandardError, "Template not found" if format == :txt
-
-          "<p>HTML works</p>"
-        end
-      }.new
-    }
+  describe "view rendering raises TemplateNotFoundError" do
+    let(:mailer) { mailer_class.new(view:) }
 
     let(:mailer_class) {
       Class.new(Hanami::Mailer) {
@@ -340,11 +332,37 @@ RSpec.describe "View integration" do
       }
     }
 
-    it "returns nil for the failing format and does not raise" do
-      result = mailer_class.new(view: failing_view).deliver
+    describe "error for one format only" do
+      let(:view) {
+        Class.new {
+          def call(format:, **)
+            raise Hanami::View::TemplateNotFoundError.new("mailer", format, []) if format == :txt
 
-      expect(result.message.html_body).to eq("<p>HTML works</p>")
-      expect(result.message.text_body).to be_nil
+            "<p>HTML works</p>"
+          end
+        }.new
+      }
+
+      it "renders a nil body for the failing format and does not raise" do
+        result = mailer.deliver
+
+        expect(result.message.html_body).to eq("<p>HTML works</p>")
+        expect(result.message.text_body).to be_nil
+      end
+    end
+
+    describe "error for both formats" do
+      let(:view) {
+        Class.new {
+          def call(format:, **)
+            raise Hanami::View::TemplateNotFoundError.new("mailer", format, [])
+          end
+        }.new
+      }
+
+      it "raises the first error" do
+        expect { mailer.deliver }.to raise_error(Hanami::View::TemplateNotFoundError)
+      end
     end
   end
 

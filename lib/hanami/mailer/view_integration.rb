@@ -12,7 +12,7 @@ module Hanami
       def self.included(base)
         base.class_eval do
           # Prepend the initializer module to wrap initialization
-          prepend Initializer
+          prepend PrependedMethods
 
           # Whether to automatically build views from exposures
           # Set to false to disable automatic view integration behavior
@@ -39,15 +39,42 @@ module Hanami
         end
       end
 
-      # Internal module for prepending initialize behavior.
-      # Wraps the base class initialize to provide automatic view building.
+      # Internal module for prepending initialize and render behavior.
+      # Wraps the base class to provide automatic view building and
+      # per-format template error handling.
       #
       # @api private
-      module Initializer
+      module PrependedMethods
         # @api private
         def initialize(view: nil, **)
           view ||= DefaultViewBuilder.call(self) if self.class.config.integrate_view
           super
+        end
+
+        # Renders HTML and text bodies, handling missing templates per format.
+        #
+        # @api private
+        def render(input)
+          html_exception = nil
+          text_exception = nil
+
+          html = begin
+            render_view(:html, input)
+          rescue Hanami::View::TemplateNotFoundError => exception
+            html_exception = exception
+            nil
+          end
+
+          text = begin
+            render_view(:txt, input)
+          rescue Hanami::View::TemplateNotFoundError => exception
+            text_exception = exception
+            nil
+          end
+
+          raise html_exception if html_exception && text_exception
+
+          [html, text]
         end
       end
 

@@ -271,8 +271,7 @@ module Hanami
       normalized_custom_headers = custom_headers.transform_keys { |key| normalize_header_name(key) }
 
       # Render body
-      html_body = render_html(input)
-      text_body = render_text(input)
+      html_body, text_body = render(input)
 
       # Evaluate class-level attachments
       attachment_data = self.class.attachments.bind(self, context)
@@ -336,39 +335,16 @@ module Hanami
 
     private
 
-    # Render HTML body
-    #
-    # @param input [Hash] input data for rendering
-    # @return [String, nil]
-    # @api private
-    def render_html(input)
-      render_view(:html, input)
+    # Renders and returns HTML and text bodies.
+    def render(input)
+      [render_view(:html, input), render_view(:txt, input)]
     end
 
-    # Render plain text body
-    #
-    # @param input [Hash] input data for rendering
-    # @return [String, nil]
-    # @api private
-    def render_text(input)
-      render_view(:txt, input)
-    end
-
-    # Render body for a specific format
-    #
-    # @param format [Symbol] the format to render (:html, :txt)
-    # @param input [Hash] input data for rendering
-    # @return [String, nil]
-    # @api private
+    # Renders body for a specific format.
     def render_view(format, input)
-      # TODO: should this be overridden by view integration? I'm thinking actually yes.
       return unless view
 
       view.call(format:, **input).to_s
-    rescue StandardError
-      # TODO: need better checking here
-      # Template might not exist for this format
-      nil
     end
 
     def read_attachment_content(content, static: false)
@@ -404,12 +380,7 @@ module Hanami
       Delivery::Test.new
     end
 
-    # Normalize header names to proper email header casing
-    #
-    # @param name [Symbol, String] the header name
-    # @return [String] properly cased header name
-    #
-    # @api private
+    # Normalizes header names to proper email header casing.
     def normalize_header_name(name)
       return name if name.is_a?(String)
 
@@ -422,12 +393,7 @@ module Hanami
         .join("-")
     end
 
-    # Process runtime attachments into Attachment objects
-    #
-    # @param attachments [Array<Hash, AttachmentData>] runtime attachments
-    # @return [Array<Attachment>]
-    #
-    # @api private
+    # Processs runtime attachments into Attachment objects.
     def process_runtime_attachments(attachments)
       Array(attachments).map do |attachment|
         data =
@@ -456,12 +422,7 @@ module Hanami
       end
     end
 
-    # Validate that all attachment filenames are unique
-    #
-    # @param attachments [Array<Attachment>] all attachments
-    # @raise [DuplicateAttachmentError] if duplicate filenames are found
-    #
-    # @api private
+    # Validates that all attachment filenames are unique.
     def ensure_unique_attachments(attachments)
       filenames = attachments.map(&:filename)
       duplicates = filenames.select { |filename| filenames.count(filename) > 1 }.uniq
