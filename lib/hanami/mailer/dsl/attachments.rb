@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative "clever_proc"
-
 module Hanami
   class Mailer
     module DSL
@@ -87,7 +85,7 @@ module Hanami
           @name_or_filename = name_or_filename
           @object = object
           @options = options
-          @callable = CleverProc.from_name(proc, name_or_filename, object)
+          @callable = PluckyProc.from_name(proc, name_or_filename, object)
         end
 
         # rubocop:disable Metrics/PerceivedComplexity

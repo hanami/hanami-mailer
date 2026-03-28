@@ -3,18 +3,18 @@
 module Hanami
   class Mailer
     module DSL
-      # A clever proc that evaluates with automatic keyword argument extraction from input.
+      # A plucky proc that evaluates with automatic keyword argument extraction from input.
       #
       # This class encapsulates the logic for calling procs/methods in a mailer context,
       # handling both positional and keyword arguments intelligently based on the proc's
       # signature.
       #
       # @api private
-      class CleverProc
+      class PluckyProc
         # @api private
         attr_reader :proc, :context
 
-        # Create a new clever proc
+        # Create a new plucky proc
         #
         # @param proc [Proc, Method, nil] the proc or method to evaluate
         # @param context [Object] the object context for instance_exec
@@ -25,13 +25,13 @@ module Hanami
           @context = context
         end
 
-        # Create a CleverProc from either a proc or a method name on the context
+        # Create a PluckyProc from either a proc or a method name on the context
         #
         # @param proc [Proc, Method, nil] the proc to use, or nil to look up a method
         # @param name [Symbol] the method name to look up if proc is nil
         # @param context [Object] the context object
         #
-        # @return [CleverProc, nil] a new CleverProc or nil if no proc/method found
+        # @return [PluckyProc, nil] a new PluckyProc or nil if no proc/method found
         #
         # @api private
         def self.from_name(proc, name, context)
@@ -124,13 +124,6 @@ module Hanami
           end
         end
 
-        # Extract keyword arguments from input based on proc parameters
-        #
-        # @param input [Hash] input hash to extract keywords from
-        #
-        # @return [Hash] extracted keyword arguments
-        #
-        # @api private
         def extract_keywords(input)
           keywords = {}
           params = proc.parameters
@@ -142,7 +135,7 @@ module Hanami
             end
           end
 
-          # Support **kwargs (keyrest) - merge all input
+          # Merge all input for **kwargs (:keyrest)
           if params.any? { |(type, _)| type == :keyrest }
             keywords.merge!(input)
           end

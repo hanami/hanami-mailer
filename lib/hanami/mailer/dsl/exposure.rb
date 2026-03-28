@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "dry/core/equalizer"
-require_relative "clever_proc"
 
 module Hanami
   class Mailer
@@ -29,7 +28,7 @@ module Hanami
           @name = name
           @object = object
           @options = options
-          @callable = CleverProc.from_name(proc, name, object)
+          @callable = PluckyProc.from_name(proc, name, object)
         end
 
         # @api private

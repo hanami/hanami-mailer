@@ -12,7 +12,7 @@ RSpec.describe Hanami::Mailer::DSL::Exposure do
       proc = -> { "value" }
       exposure = described_class.new(:computed, proc)
 
-      expect(exposure.callable).to be_a(Hanami::Mailer::DSL::CleverProc)
+      expect(exposure.callable).to be_a(Hanami::Mailer::DSL::PluckyProc)
     end
 
     it "creates an exposure with options" do
@@ -53,7 +53,7 @@ RSpec.describe Hanami::Mailer::DSL::Exposure do
       exposure = described_class.new(:my_exposure)
       bound = exposure.bind(context)
 
-      expect(bound.callable).to be_a(Hanami::Mailer::DSL::CleverProc)
+      expect(bound.callable).to be_a(Hanami::Mailer::DSL::PluckyProc)
     end
   end
 
