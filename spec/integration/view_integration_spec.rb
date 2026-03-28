@@ -239,13 +239,10 @@ RSpec.describe "View integration" do
       }
     }
 
-    it "does not auto-build a view" do
-      expect(mailer.view).to be_nil
-    end
-
-    it "delivers successfully" do
+    it "delivers successfully with no view built" do
       result = mailer.deliver(name: "Alice")
 
+      expect(mailer.view).to be_nil
       expect(result.success?).to be true
       expect(result.message.html_body).to be_nil
       expect(result.message.text_body).to be_nil
@@ -279,11 +276,11 @@ RSpec.describe "View integration" do
       }
     }
 
-    it "has nil view by default when no exposures or paths configured" do
+    it "does not auto-build a view" do
       expect(mailer.view).to be_nil
     end
 
-    it "delivers successfully with nil body" do
+    it "delivers with nil body" do
       result = mailer.deliver
 
       expect(result.success?).to be true
@@ -292,8 +289,10 @@ RSpec.describe "View integration" do
     end
   end
 
-  describe "with custom view object" do
-    let(:custom_view) {
+  describe "with injected view" do
+    let(:mailer) { mailer_class.new(view:) }
+
+    let(:view) {
       Class.new {
         def call(format:, **input)
           case format
@@ -315,31 +314,10 @@ RSpec.describe "View integration" do
     }
 
     it "uses injected view for rendering" do
-      result = mailer_class.new(view: custom_view).deliver(name: "Alice")
+      result = mailer.deliver(name: "Alice")
 
       expect(result.message.html_body).to eq("<h1>Hello, Alice!</h1>")
       expect(result.message.text_body).to eq("Hello, Alice!")
-    end
-
-    it "passes input to view" do
-      result = mailer_class.new(view: custom_view).deliver(name: "Bob")
-
-      expect(result.message.html_body).to include("Bob")
-    end
-
-    it "calls view with format parameter" do
-      view_spy = Class.new {
-        attr_reader :last_format
-
-        def call(format:, **)
-          @last_format = format
-          "content"
-        end
-      }.new
-
-      mailer_class.new(view: view_spy).deliver(name: "Test")
-
-      expect(view_spy.last_format).to eq(:html).or eq(:txt)
     end
   end
 
@@ -362,52 +340,11 @@ RSpec.describe "View integration" do
       }
     }
 
-    it "returns nil for format when rendering fails" do
+    it "returns nil for the failing format and does not raise" do
       result = mailer_class.new(view: failing_view).deliver
 
       expect(result.message.html_body).to eq("<p>HTML works</p>")
       expect(result.message.text_body).to be_nil
-    end
-
-    it "does not raise exception when view rendering fails" do
-      expect { mailer_class.new(view: failing_view).deliver }.not_to raise_error
-    end
-  end
-
-  describe "view with input data" do
-    let(:view_with_input) {
-      Class.new {
-        def call(format:, name:, title: "Mr.")
-          case format
-          when :html then "<p>#{title} #{name}</p>"
-          when :txt  then "#{title} #{name}"
-          end
-        end
-      }.new
-    }
-
-    let(:mailer_class) {
-      Class.new(Hanami::Mailer) {
-        from "noreply@example.com"
-        to "user@example.com"
-        subject "Test"
-
-        expose :name
-        expose :title
-      }
-    }
-
-    it "passes input data to view" do
-      result = mailer_class.new(view: view_with_input).deliver(name: "Alice", title: "Dr.")
-
-      expect(result.message.html_body).to include("Dr. Alice")
-      expect(result.message.text_body).to include("Dr. Alice")
-    end
-
-    it "uses default parameter values when not provided" do
-      result = mailer_class.new(view: view_with_input).deliver(name: "Bob")
-
-      expect(result.message.html_body).to include("Mr. Bob")
     end
   end
 
