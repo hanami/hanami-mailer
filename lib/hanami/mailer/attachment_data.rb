@@ -39,20 +39,11 @@ module Hanami
       # @api private
       def to_h
         {
-          filename: filename,
-          content: content,
-          content_type: content_type,
-          inline: inline
+          filename:,
+          content:,
+          content_type:,
+          inline:
         }
-      end
-
-      # Check if this is an inline attachment
-      #
-      # @return [Boolean]
-      #
-      # @api public
-      def inline?
-        @inline
       end
     end
   end

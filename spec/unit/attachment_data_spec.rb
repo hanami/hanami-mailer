@@ -60,20 +60,6 @@ RSpec.describe Hanami::Mailer::AttachmentData do
     end
   end
 
-  describe "#inline?" do
-    it "returns false by default" do
-      data = described_class.new(filename: "file.pdf", content: "content")
-
-      expect(data.inline?).to be false
-    end
-
-    it "returns true when inline: true" do
-      data = described_class.new(filename: "logo.png", content: "bytes", inline: true)
-
-      expect(data.inline?).to be true
-    end
-  end
-
   describe "#to_h" do
     it "returns a hash with all fields" do
       data = described_class.new(

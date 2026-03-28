@@ -74,30 +74,28 @@ module Hanami
           @callable = PluckyProc.from_name(proc, name_or_filename, object)
         end
 
-        # rubocop:disable Metrics/PerceivedComplexity
-
         # Evaluates the attachment definition and return an array of attachments.
         def call(input)
           if callable
-            results = callable.call(input)
-            results = [results] unless results.is_a?(Array)
-            results.map { |attachment_data| process_attachment_data(attachment_data) }
-          elsif name_or_filename.is_a?(String)
-            # Static filename
-            [{filename: name_or_filename, content: name_or_filename, inline: options[:inline] || false, static: true}]
+            results = Array(callable.call(input))
+            results.map { |attachment_data| attachment_hash(attachment_data) }
           else
-            # Method name
-            results = object.public_send(name_or_filename)
-            results = [results] unless results.is_a?(Array)
-            results.map { |attachment_data| process_attachment_data(attachment_data) }
+            # Static filename string with no proc or matching method
+            [
+              {
+                filename: name_or_filename,
+                content: name_or_filename,
+                inline: options[:inline],
+                static: true
+              }
+            ]
           end
         end
-        # rubocop:enable Metrics/PerceivedComplexity
 
         private
 
-        def process_attachment_data(data)
-          unless data.is_a?(Hanami::Mailer::AttachmentData)
+        def attachment_hash(data)
+          unless data.is_a?(AttachmentData)
             raise ArgumentError, "Attachment blocks must return AttachmentData objects. Use the `file` helper method."
           end
 
