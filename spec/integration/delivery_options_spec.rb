@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 RSpec.describe "Delivery options" do
-  let(:delivery) do
+  let(:delivery_method) do
     Class.new do
       attr_reader :last_options
 
@@ -39,23 +39,23 @@ RSpec.describe "Delivery options" do
     end
 
     it "passes static and dynamic options to delivery method" do
-      mailer = mailer_class.new(delivery:)
+      mailer = mailer_class.new(delivery_method:)
       scheduled = Time.new(2025, 1, 15, 9, 0, 0)
 
       result = mailer.deliver(scheduled_time: scheduled)
 
-      expect(delivery.last_options[:track_opens]).to be true
-      expect(delivery.last_options[:send_at]).to eq(scheduled)
+      expect(delivery_method.last_options[:track_opens]).to be true
+      expect(delivery_method.last_options[:send_at]).to eq(scheduled)
       expect(result.response[:status]).to eq("scheduled")
     end
 
     it "evaluates dynamic options with nil values" do
-      mailer = mailer_class.new(delivery:)
+      mailer = mailer_class.new(delivery_method:)
 
       result = mailer.deliver(scheduled_time: nil)
 
-      expect(delivery.last_options[:track_opens]).to be true
-      expect(delivery.last_options[:send_at]).to be_nil
+      expect(delivery_method.last_options[:track_opens]).to be true
+      expect(delivery_method.last_options[:send_at]).to be_nil
       expect(result.response[:status]).to eq("sent")
     end
   end
@@ -70,11 +70,11 @@ RSpec.describe "Delivery options" do
     end
 
     it "provides empty hash when no options defined" do
-      mailer = mailer_class.new(delivery:)
+      mailer = mailer_class.new(delivery_method:)
 
       mailer.deliver
 
-      expect(delivery.last_options).to eq({})
+      expect(delivery_method.last_options).to eq({})
     end
   end
 
@@ -99,13 +99,13 @@ RSpec.describe "Delivery options" do
     end
 
     it "inherits and overrides parent delivery options" do
-      mailer = child_mailer_class.new(delivery:)
+      mailer = child_mailer_class.new(delivery_method:)
 
       mailer.deliver
 
-      expect(delivery.last_options[:track_opens]).to be true
-      expect(delivery.last_options[:category]).to eq("child")
-      expect(delivery.last_options[:priority]).to eq("high")
+      expect(delivery_method.last_options[:track_opens]).to be true
+      expect(delivery_method.last_options[:category]).to eq("child")
+      expect(delivery_method.last_options[:priority]).to eq("high")
     end
   end
 
@@ -128,11 +128,11 @@ RSpec.describe "Delivery options" do
     end
 
     it "evaluates options based on computed exposures" do
-      mailer = mailer_class.new(delivery:)
+      mailer = mailer_class.new(delivery_method:)
 
       mailer.deliver(user: {premium: true})
 
-      expect(delivery.last_options[:priority]).to eq("high")
+      expect(delivery_method.last_options[:priority]).to eq("high")
     end
   end
 end

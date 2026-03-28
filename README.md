@@ -337,7 +337,7 @@ smtp_delivery = Hanami::Mailer::Delivery::Smtp.new(
   enable_starttls_auto: true
 )
 
-mailer = WelcomeMailer.new(delivery: smtp_delivery)
+mailer = WelcomeMailer.new(delivery_method: smtp_delivery)
 mailer.deliver(user: user)
 ```
 
@@ -348,7 +348,7 @@ In a Hanami app, you can register the delivery method as a dependency:
 module MyApp
   class App < Hanami::App
     config.after_initialize do
-      register "mailers.delivery", Hanami::Mailer::Delivery::Smtp.new(
+      register "mailers.delivery_method", Hanami::Mailer::Delivery::Smtp.new(
         address: ENV["SMTP_ADDRESS"],
         port: ENV["SMTP_PORT"],
         # ... other options
@@ -359,10 +359,10 @@ end
 
 # Then inject it
 class WelcomeMailer < Hanami::Mailer
-  include Deps["mailers.delivery"]
+  include Deps["mailers.delivery_method"]
   
-  def initialize(delivery:, **deps)
-    super(delivery: delivery)
+  def initialize(delivery_method:, **deps)
+    super(delivery_method: delivery_method)
   end
 end
 ```
@@ -381,7 +381,7 @@ class CustomDelivery
 end
 
 # Inject it
-mailer = WelcomeMailer.new(delivery: CustomDelivery.new)
+mailer = WelcomeMailer.new(delivery_method: CustomDelivery.new)
 mailer.deliver(user: user)
 ```
 
@@ -602,7 +602,7 @@ smtp_delivery = Hanami::Mailer::Delivery::Smtp.new(
   address: "smtp.example.com"
 )
 
-mailer = WelcomeMailer.new(delivery: smtp_delivery)
+mailer = WelcomeMailer.new(delivery_method: smtp_delivery)
 mailer.deliver(user: user)
 ```
 

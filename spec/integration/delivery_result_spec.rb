@@ -92,9 +92,9 @@ RSpec.describe "Delivery results" do
   end
 
   describe "custom delivery method with extended result" do
-    let(:mailer) { mailer_class.new(delivery:) }
+    let(:mailer) { mailer_class.new(delivery_method:) }
 
-    let(:delivery) {
+    let(:delivery_method) {
       result_class = self.result_class
 
       Class.new {
@@ -151,9 +151,9 @@ RSpec.describe "Delivery results" do
   end
 
   describe "custom delivery method with failure result" do
-    let(:mailer) { mailer_class.new(delivery:) }
+    let(:mailer) { mailer_class.new(delivery_method:) }
 
-    let(:delivery) {
+    let(:delivery_method) {
       result_class = self.result_class
 
       Class.new {

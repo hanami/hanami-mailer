@@ -14,7 +14,7 @@ RSpec.describe Hanami::Mailer::Delivery::SMTP do
     end
   end
 
-  let(:mailer) { mailer_class.new(delivery: smtp_delivery) }
+  let(:mailer) { mailer_class.new(delivery_method: smtp_delivery) }
 
   before do
     # Prevent actual SMTP connections across all examples

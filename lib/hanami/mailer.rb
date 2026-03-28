@@ -207,17 +207,17 @@ module Hanami
     end
 
     # @api private
-    attr_reader :view, :delivery
+    attr_reader :view, :delivery_method
 
     # Initialize a new mailer instance
     #
     # @param view [Object, nil] optional view object for rendering
-    # @param delivery [Object] delivery method (defaults to Test delivery)
+    # @param delivery_method [Object] delivery method (defaults to Test delivery)
     #
     # @api public
-    def initialize(view: nil, delivery: nil)
+    def initialize(view: nil, delivery_method: nil)
       @view = view
-      @delivery = delivery || default_delivery
+      @delivery_method = delivery_method || default_delivery_method
     end
 
     # Deliver the email
@@ -231,7 +231,7 @@ module Hanami
     # @api public
     def deliver(headers: {}, attachments: nil, **input)
       message = prepare(headers: headers, attachments: attachments, **input)
-      delivery.call(message)
+      delivery_method.call(message)
     end
 
     # rubocop:disable Metrics/AbcSize
@@ -376,7 +376,7 @@ module Hanami
       end
     end
 
-    def default_delivery
+    def default_delivery_method
       Delivery::Test.new
     end
 
