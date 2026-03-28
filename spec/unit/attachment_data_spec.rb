@@ -83,23 +83,27 @@ RSpec.describe Hanami::Mailer::AttachmentData do
         inline: true
       )
 
-      expect(data.to_h).to eq({
-        filename: "report.pdf",
-        content: "PDF bytes",
-        content_type: "application/pdf",
-        inline: true
-      })
+      expect(data.to_h).to eq(
+        {
+          filename: "report.pdf",
+          content: "PDF bytes",
+          content_type: "application/pdf",
+          inline: true
+        }
+      )
     end
 
     it "includes nil content_type when not set" do
       data = described_class.new(filename: "file.txt", content: "hello")
 
-      expect(data.to_h).to eq({
-        filename: "file.txt",
-        content: "hello",
-        content_type: nil,
-        inline: false
-      })
+      expect(data.to_h).to eq(
+        {
+          filename: "file.txt",
+          content: "hello",
+          content_type: nil,
+          inline: false
+        }
+      )
     end
   end
 end

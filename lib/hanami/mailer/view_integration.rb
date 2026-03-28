@@ -92,8 +92,8 @@ module Hanami
           def call(mailer)
             return nil if mailer.class.exposures.empty? && mailer.class.config.paths.empty?
 
-            configured_template = mailer.class.config.template
-            template = configured_template && !configured_template.empty? ? configured_template : inferred_template(mailer)
+            template = mailer.class.config.template
+            template ||= inferred_template(mailer)
 
             build_view_class(
               paths: mailer.class.config.paths,

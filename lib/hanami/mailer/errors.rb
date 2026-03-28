@@ -33,9 +33,11 @@ module Hanami
       def initialize(filename, paths = [])
         message =
           if paths.any?
-            "Attachment file not found: #{filename}. Searched in: #{paths.join(', ')}"
+            "Attachment file not found: #{filename}. "\
+            "Searched in: #{paths.join(', ')}"
           else
-            "Attachment file not found: #{filename}. Configure `attachment_paths` to specify where attachment files are located."
+            "Attachment file not found: #{filename}. " \
+            "Configure `attachment_paths` to specify where attachment files are located."
           end
         super(message)
       end
@@ -46,7 +48,10 @@ module Hanami
     # @api public
     class DuplicateAttachmentError < Error
       def initialize(filename)
-        super("Duplicate attachment filename: #{filename.inspect}. Each attachment must have a unique filename.")
+        super(
+          "Duplicate attachment filename: #{filename.inspect}. " \
+          "Each attachment must have a unique filename."
+        )
       end
     end
   end
