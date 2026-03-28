@@ -3,6 +3,8 @@
 require "hanami-mailer"
 require "fileutils"
 
+SPEC_ROOT = Pathname(__dir__).realpath.freeze
+
 Dir[File.join(__dir__, "support", "**", "*.rb")].each { |f| require f }
 
 RSpec.configure do |config|

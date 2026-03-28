@@ -459,7 +459,7 @@ RSpec.describe "Attachments" do
       end
     end
 
-    describe "prepare method with runtime attachments" do
+    describe "preparing message with runtime attachments" do
       let(:mailer_class) do
         Class.new(Hanami::Mailer) do
           from "noreply@example.com"
