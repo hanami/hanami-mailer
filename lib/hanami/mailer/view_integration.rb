@@ -138,14 +138,7 @@ module Hanami
 
           # rubocop:disable Metrics/AbcSize, Metrics/PerceivedComplexity
 
-          # Build a Hanami::View instance from mailer configuration
-          #
-          # @param paths [Array<String>] template paths
-          # @param template [String, nil] template name
-          # @param exposures [DSL::Exposures] exposure definitions
-          # @param config [Dry::Configurable::Config] mailer configuration
-          # @return [Hanami::View, nil]
-          # @api private
+          # Builds a Hanami::View instance from mailer configuration.
           def build_view_class(paths:, template:, exposures:, config:)
             return nil unless defined?(Hanami::View)
 
@@ -157,26 +150,23 @@ module Hanami
             # paths is required by Hanami::View - return nil if not configured
             return nil if view_paths.nil? || view_paths.empty?
 
+            # View settings we configure explicitly below — don't overwrite them
+            explicitly_configured = %i[paths template layout]
+
             view_class = Class.new(Hanami::View) do
-              # Set critical required settings first
               self.config.paths = view_paths
               self.config.template = view_template
               self.config.layout = false
 
-              # Copy remaining settings from mailer config to view config
+              # Copy remaining view settings from mailer config
               Hanami::View.config._settings.each do |setting_def|
-                setting_name = setting_def.name
+                next if explicitly_configured.include?(setting_def.name)
+                next unless mailer_config.respond_to?(setting_def.name)
 
-                # Skip mailer-specific settings and already-set critical settings
-                #
-                # FIXME: need a nicer way of doing this
-                next if %i[default_from default_charset template_inference_base paths template
-                           layout].include?(setting_name)
-
-                # Apply the setting value from mailer config if it exists
-                if mailer_config.respond_to?(setting_name)
-                  self.config.public_send(:"#{setting_name}=", mailer_config.public_send(setting_name))
-                end
+                self.config.public_send(
+                  :"#{setting_def.name}=",
+                  mailer_config.public_send(setting_def.name)
+                )
               end
 
               view_exposures.each do |name, exposure|
