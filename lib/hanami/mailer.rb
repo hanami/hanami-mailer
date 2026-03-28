@@ -255,9 +255,6 @@ module Hanami
       # Merge input with evaluated locals for use in header evaluation
       context = input.merge(locals)
 
-      # TODO: I'm wondering whether we actually want to pass `context` to `headers` and
-      # `delivery_options`
-
       # Evaluate headers (from, to, cc, bcc, reply_to, return_path, subject, and custom headers)
       headers = self.class.headers.bind(self).call(context)
 
