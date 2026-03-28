@@ -11,70 +11,60 @@ module Hanami
         include Dry::Equalizer(:exposures)
         include TSort
 
-        # @api private
         attr_reader :exposures
 
-        # @api private
         def initialize(exposures = {})
           @exposures = exposures
+          @has_dependencies = false
         end
 
-        # @api private
         def initialize_copy(source)
           super
           @exposures = source.exposures.transform_values(&:dup)
+          @has_dependencies = source.instance_variable_get(:@has_dependencies)
         end
 
-        # @api private
         def key?(name)
           exposures.key?(name)
         end
 
-        # @api private
         def [](name)
           exposures[name]
         end
 
-        # @api private
         def each(&block)
           exposures.each(&block)
         end
 
-        # @api private
         def empty?
           exposures.empty?
         end
 
-        # @api private
         def add(name, proc = nil, **options)
-          exposures[name] = Exposure.new(name, proc, **options)
+          exposure = Exposure.new(name, proc, **options)
+          @has_dependencies ||= exposure.dependencies?
+          exposures[name] = exposure
         end
 
-        # @api private
         def import(name, exposure)
           exposures[name] = exposure.dup
         end
 
-        # @api private
         def bind(obj)
           bound_exposures = exposures.transform_values { |exposure|
             exposure.bind(obj)
           }
 
-          self.class.new(bound_exposures)
+          copy = self.class.new(bound_exposures)
+          copy.instance_variable_set(:@has_dependencies, @has_dependencies)
+          copy
         end
 
         # rubocop:disable Metrics/PerceivedComplexity
 
-        # @api private
         def call(input)
           # Avoid performance cost of tsorting when we don't need it
-          names =
-            if exposures.values.any?(&:dependencies?) # TODO: this sholud be cachable at time of `#add`
-              tsort
-            else
-              exposures.keys
-            end
+          names = dependencies? ? tsort : exposures.keys
 
           names
             .each_with_object({}) { |name, memo|
@@ -94,6 +84,8 @@ module Hanami
         # rubocop:enable Metrics/PerceivedComplexity
 
         private
+
+        def dependencies? = @has_dependencies
 
         def tsort_each_node(&block)
           exposures.each_key(&block)
