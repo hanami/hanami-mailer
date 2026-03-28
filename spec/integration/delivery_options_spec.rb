@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-RSpec.describe Hanami::Mailer, "delivery options" do
-  let(:custom_delivery_class) do
+RSpec.describe "Delivery options" do
+  let(:delivery) do
     Class.new do
       attr_reader :last_options
 
@@ -16,7 +16,7 @@ RSpec.describe Hanami::Mailer, "delivery options" do
           response: {status: status, options: message.delivery_options}
         )
       end
-    end
+    end.new
   end
 
   describe "passing options to delivery method" do
@@ -39,25 +39,23 @@ RSpec.describe Hanami::Mailer, "delivery options" do
     end
 
     it "passes static and dynamic options to delivery method" do
-      custom_delivery = custom_delivery_class.new
-      mailer = mailer_class.new(delivery: custom_delivery)
+      mailer = mailer_class.new(delivery:)
       scheduled = Time.new(2025, 1, 15, 9, 0, 0)
 
       result = mailer.deliver(scheduled_time: scheduled)
 
-      expect(custom_delivery.last_options[:track_opens]).to be true
-      expect(custom_delivery.last_options[:send_at]).to eq(scheduled)
+      expect(delivery.last_options[:track_opens]).to be true
+      expect(delivery.last_options[:send_at]).to eq(scheduled)
       expect(result.response[:status]).to eq("scheduled")
     end
 
     it "evaluates dynamic options with nil values" do
-      custom_delivery = custom_delivery_class.new
-      mailer = mailer_class.new(delivery: custom_delivery)
+      mailer = mailer_class.new(delivery:)
 
       result = mailer.deliver(scheduled_time: nil)
 
-      expect(custom_delivery.last_options[:track_opens]).to be true
-      expect(custom_delivery.last_options[:send_at]).to be_nil
+      expect(delivery.last_options[:track_opens]).to be true
+      expect(delivery.last_options[:send_at]).to be_nil
       expect(result.response[:status]).to eq("sent")
     end
   end
@@ -72,12 +70,11 @@ RSpec.describe Hanami::Mailer, "delivery options" do
     end
 
     it "provides empty hash when no options defined" do
-      custom_delivery = custom_delivery_class.new
-      mailer = mailer_class.new(delivery: custom_delivery)
+      mailer = mailer_class.new(delivery:)
 
       mailer.deliver
 
-      expect(custom_delivery.last_options).to eq({})
+      expect(delivery.last_options).to eq({})
     end
   end
 
@@ -102,14 +99,13 @@ RSpec.describe Hanami::Mailer, "delivery options" do
     end
 
     it "inherits and overrides parent delivery options" do
-      custom_delivery = custom_delivery_class.new
-      mailer = child_mailer_class.new(delivery: custom_delivery)
+      mailer = child_mailer_class.new(delivery:)
 
       mailer.deliver
 
-      expect(custom_delivery.last_options[:track_opens]).to be true
-      expect(custom_delivery.last_options[:category]).to eq("child")
-      expect(custom_delivery.last_options[:priority]).to eq("high")
+      expect(delivery.last_options[:track_opens]).to be true
+      expect(delivery.last_options[:category]).to eq("child")
+      expect(delivery.last_options[:priority]).to eq("high")
     end
   end
 
@@ -132,12 +128,11 @@ RSpec.describe Hanami::Mailer, "delivery options" do
     end
 
     it "evaluates options based on computed exposures" do
-      custom_delivery = custom_delivery_class.new
-      mailer = mailer_class.new(delivery: custom_delivery)
+      mailer = mailer_class.new(delivery:)
 
       mailer.deliver(user: {premium: true})
 
-      expect(custom_delivery.last_options[:priority]).to eq("high")
+      expect(delivery.last_options[:priority]).to eq("high")
     end
   end
 end
