@@ -134,6 +134,20 @@ RSpec.describe Hanami::Mailer::Message do
         }.not_to raise_error
       end
     end
+
+    describe "sender validation" do
+      it "raises MissingSenderError when from is nil" do
+        expect {
+          described_class.new(from: nil, to: "to@example.com", subject: "Test")
+        }.to raise_error(Hanami::Mailer::MissingSenderError)
+      end
+
+      it "raises MissingSenderError when from is an empty array" do
+        expect {
+          described_class.new(from: [], to: "to@example.com", subject: "Test")
+        }.to raise_error(Hanami::Mailer::MissingSenderError)
+      end
+    end
   end
 
   describe "#to_h" do

@@ -46,6 +46,7 @@ module Hanami
         @charset = charset
         @delivery_options = delivery_options
 
+        validate_sender!
         validate_recipients!
       end
 
@@ -80,6 +81,13 @@ module Hanami
         return addresses if addresses.is_a?(Array)
 
         [addresses]
+      end
+
+      # Validate that a sender address is present
+      def validate_sender!
+        if from.nil? || from.empty?
+          raise MissingSenderError
+        end
       end
 
       # Validate that at least one recipient is present

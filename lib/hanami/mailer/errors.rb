@@ -17,6 +17,15 @@ module Hanami
       end
     end
 
+    # Raised when a mailer message is missing a sender address
+    #
+    # @api public
+    class MissingSenderError < Error
+      def initialize(message = "Missing sender. Provide a `from` address")
+        super
+      end
+    end
+
     # Raised when a mailer message is missing required recipient information
     #
     # @api public

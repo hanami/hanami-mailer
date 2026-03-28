@@ -111,5 +111,18 @@ RSpec.describe "Basic mail delivery" do
         expect { mailer.deliver }.to raise_error(Hanami::Mailer::MissingRecipientError)
       end
     end
+
+    describe "missing sender" do
+      let(:mailer_class) {
+        Class.new(Hanami::Mailer) {
+          to "user@example.com"
+          subject "Test"
+        }
+      }
+
+      it "raises error when no sender is provided" do
+        expect { mailer.deliver }.to raise_error(Hanami::Mailer::MissingSenderError)
+      end
+    end
   end
 end
