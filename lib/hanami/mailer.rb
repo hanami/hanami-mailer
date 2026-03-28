@@ -229,8 +229,8 @@ module Hanami
     # @return [Delivery::Result]
     #
     # @api public
-    def deliver(headers: {}, attachments: nil, **input)
-      message = prepare(headers: headers, attachments: attachments, **input)
+    def deliver(headers: {}, attachments: nil, format: nil, **input)
+      message = prepare(headers:, attachments:, format:, **input)
       delivery_method.call(message)
     end
 
@@ -245,7 +245,7 @@ module Hanami
     # @return [Message]
     #
     # @api public
-    def prepare(headers: {}, attachments: nil, **input)
+    def prepare(headers: {}, attachments: nil, format: nil, **input)
       # Collect header overrides
       header_overrides = headers.compact
 
@@ -271,7 +271,7 @@ module Hanami
       normalized_custom_headers = custom_headers.transform_keys { |key| normalize_header_name(key) }
 
       # Render body
-      html_body, text_body = render(input)
+      html_body, text_body = render(input, format:)
 
       # Evaluate class-level attachments
       attachment_data = self.class.attachments.bind(self, context)
@@ -336,8 +336,10 @@ module Hanami
     private
 
     # Renders and returns HTML and text bodies.
-    def render(input)
-      [render_view(:html, input), render_view(:txt, input)]
+    def render(input, format: nil)
+      html_body = render_view(:html, input) if format.nil? || format == :html
+      text_body = render_view(:txt, input) if format.nil? || format == :txt
+      [html_body, text_body]
     end
 
     # Renders body for a specific format.

@@ -54,25 +54,35 @@ module Hanami
         # Renders HTML and text bodies, handling missing templates per format.
         #
         # @api private
-        def render(input)
+        def render(input, format: nil)
           html_exception = nil
           text_exception = nil
 
-          html = begin
-            render_view(:html, input)
-          rescue Hanami::View::TemplateNotFoundError => exception
-            html_exception = exception
-            nil
+          html = if format.nil? || format == :html
+            begin
+              render_view(:html, input)
+            rescue Hanami::View::TemplateNotFoundError => exception
+              html_exception = exception
+              nil
+            end
           end
 
-          text = begin
-            render_view(:txt, input)
-          rescue Hanami::View::TemplateNotFoundError => exception
-            text_exception = exception
-            nil
+          text = if format.nil? || format == :txt
+            begin
+              render_view(:txt, input)
+            rescue Hanami::View::TemplateNotFoundError => exception
+              text_exception = exception
+              nil
+            end
           end
 
-          raise html_exception if html_exception && text_exception
+          if format.nil? && html_exception && text_exception
+            raise html_exception
+          elsif format == :html && html_exception
+            raise html_exception
+          elsif format == :txt && text_exception
+            raise text_exception
+          end
 
           [html, text]
         end
