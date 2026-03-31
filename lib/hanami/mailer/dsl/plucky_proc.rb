@@ -11,15 +11,12 @@ module Hanami
       #
       # @api private
       class PluckyProc
-        # @api private
         attr_reader :proc, :context
 
         # Create a new plucky proc
         #
         # @param proc [Proc, Method, nil] the proc or method to evaluate
         # @param context [Object] the object context for instance_exec
-        #
-        # @api private
         def initialize(proc, context:)
           @proc = proc
           @context = context
@@ -32,8 +29,6 @@ module Hanami
         # @param context [Object] the context object
         #
         # @return [PluckyProc, nil] a new PluckyProc or nil if no proc/method found
-        #
-        # @api private
         def self.from_name(proc, name, context)
           resolved_proc =
             if proc
@@ -51,8 +46,6 @@ module Hanami
         # @param args [Array] positional arguments to pass to the proc
         #
         # @return [Object] the result of evaluating the proc
-        #
-        # @api private
         def call(input, *args)
           return nil unless proc
 
@@ -68,8 +61,6 @@ module Hanami
         # Check if this evaluator has a proc to call
         #
         # @return [Boolean]
-        #
-        # @api private
         def callable?
           !proc.nil?
         end
@@ -77,8 +68,6 @@ module Hanami
         # Get dependency parameter names (positional args: :req, :opt)
         #
         # @return [Array<Symbol>] parameter names
-        #
-        # @api private
         def dependency_names
           @dependency_names ||=
             if proc
@@ -93,8 +82,6 @@ module Hanami
         # Get keyword parameter names (:key, :keyreq)
         #
         # @return [Array<Symbol>] parameter names
-        #
-        # @api private
         def keyword_names
           @keyword_names ||=
             if proc

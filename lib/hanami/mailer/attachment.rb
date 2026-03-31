@@ -107,7 +107,7 @@ module Hanami
         @content = content
         @content_type = content_type || detect_content_type(filename)
         @inline = inline
-        @content_id = inline ? generate_content_id(filename) : nil
+        @content_id = inline ? filename : nil
       end
 
       # Returns true if this is an inline attachment.
@@ -122,13 +122,6 @@ module Hanami
       def detect_content_type(filename)
         ext = File.extname(filename).downcase
         MIME_TYPES[ext] || "application/octet-stream"
-      end
-
-      # Generates a content ID for inline attachments based on filename.
-      #
-      # This allows templates to reference inline images using `cid:filename`.
-      def generate_content_id(filename)
-        filename
       end
     end
   end

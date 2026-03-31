@@ -30,9 +30,8 @@ module Hanami
       private
 
       def ensure_unique!
-        filenames = @attachments.map(&:filename)
-        duplicates = filenames.select { |filename| filenames.count(filename) > 1 }.uniq
-        raise DuplicateAttachmentError, duplicates.first if duplicates.any?
+        duplicate = @attachments.map(&:filename).tally.find { |_, count| count > 1 }&.first
+        raise DuplicateAttachmentError, duplicate if duplicate
       end
     end
   end

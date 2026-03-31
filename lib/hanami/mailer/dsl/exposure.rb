@@ -41,20 +41,6 @@ module Hanami
           !dependency_names.empty?
         end
 
-        def input_keys
-          return [] unless callable
-
-          callable.keyword_names
-        end
-
-        def for_layout?
-          options.fetch(:layout, false)
-        end
-
-        def decorate?
-          options.fetch(:decorate, true)
-        end
-
         def private?
           options.fetch(:private, false)
         end

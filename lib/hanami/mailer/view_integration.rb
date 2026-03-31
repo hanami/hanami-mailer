@@ -50,7 +50,7 @@ module Hanami
           html, html_error = try_render(:html, input) unless format == :text
           text, text_error = try_render(:text, input) unless format == :html
 
-          # Tolerate one missing template if attempting to render both. Otherwise, consdier any
+          # Tolerate one missing template if attempting to render both. Otherwise, consider any
           # error as fatal.
           raise html_error if html_error && (format || text_error)
           raise text_error if text_error && format
@@ -106,8 +106,6 @@ module Hanami
 
           # Builds a Hanami::View instance from mailer configuration.
           def build_view_class(paths:, template:, exposures:, config:)
-            return nil unless defined?(Hanami::View)
-
             view_paths = paths
             view_template = template
             view_exposures = exposures

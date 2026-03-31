@@ -27,18 +27,18 @@ module Hanami
           mail = to_mail(message)
           mail.delivery_method(:smtp, @options)
 
-          exception = nil
+          delivery_exception = nil
           begin
             mail.deliver!
           rescue Net::SMTPError => exception
-            exception = exception
+            delivery_exception = exception
           end
 
           Result.new(
             message: message,
             response: mail,
-            success: exception.nil?,
-            error: exception
+            success: delivery_exception.nil?,
+            error: delivery_exception
           )
         end
 

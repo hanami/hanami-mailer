@@ -140,21 +140,6 @@ RSpec.describe Hanami::Mailer::DSL::Exposure do
     end
   end
 
-  describe "#input_keys" do
-    it "returns empty array when no callable" do
-      exposure = described_class.new(:user)
-
-      expect(exposure.input_keys).to eq([])
-    end
-
-    it "returns keyword parameter names from proc" do
-      proc = ->(user:, order:) {}
-      exposure = described_class.new(:computed, proc, Object.new)
-
-      expect(exposure.input_keys).to eq([:user, :order])
-    end
-  end
-
   describe "#private?" do
     it "returns false by default" do
       exposure = described_class.new(:user)
@@ -166,34 +151,6 @@ RSpec.describe Hanami::Mailer::DSL::Exposure do
       exposure = described_class.new(:user, nil, nil, private: true)
 
       expect(exposure.private?).to be true
-    end
-  end
-
-  describe "#decorate?" do
-    it "returns true by default" do
-      exposure = described_class.new(:user)
-
-      expect(exposure.decorate?).to be true
-    end
-
-    it "returns false when decorate option is false" do
-      exposure = described_class.new(:user, nil, nil, decorate: false)
-
-      expect(exposure.decorate?).to be false
-    end
-  end
-
-  describe "#for_layout?" do
-    it "returns false by default" do
-      exposure = described_class.new(:user)
-
-      expect(exposure.for_layout?).to be false
-    end
-
-    it "returns true when layout option is set" do
-      exposure = described_class.new(:user, nil, nil, layout: true)
-
-      expect(exposure.for_layout?).to be true
     end
   end
 

@@ -37,7 +37,7 @@ module Hanami
     # @api public
     setting :attachment_paths, default: []
 
-    # Prepend Hanami::View integration if available.
+    # Include Hanami::View integration if available.
     # This wraps initialization to provide automatic view building from exposures.
     # The ViewIntegration module adds all view-related settings and capabilities.
     #
@@ -216,8 +216,9 @@ module Hanami
 
     # Deliver the email
     #
-    # @param headers [Hash] optional header overrides (from, to, cc, bcc, reply_to, subject)
+    # @param headers [Hash] optional header overrides (from, to, cc, bcc, reply_to, return_path, subject)
     # @param attachments [Array<Hash, Attachment>, nil] optional runtime attachments
+    # @param format [Symbol, nil] optional format to render (:html or :text)
     # @param input [Hash] input data for exposures and rendering
     #
     # @return [Delivery::Result]
@@ -232,8 +233,9 @@ module Hanami
 
     # Build the message without delivering it
     #
-    # @param headers [Hash] optional header overrides (from, to, cc, bcc, reply_to, subject)
+    # @param headers [Hash] optional header overrides (from, to, cc, bcc, reply_to, return_path, subject)
     # @param attachments [Array<Hash, Attachment>, nil] optional runtime attachments
+    # @param format [Symbol, nil] optional format to render (:html or :text)
     # @param input [Hash] input data for exposures and rendering
     #
     # @return [Message]
