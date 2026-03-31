@@ -17,14 +17,6 @@ module Hanami
           definitions << Attachment.new(name_or_filename, proc, **options)
         end
 
-        def import(definition)
-          definitions << definition.dup
-        end
-
-        def each(&block)
-          definitions.each(&block)
-        end
-
         # Binds all definitions to a mailer instance and evaluates them, returning an
         # {AttachmentSet} of {Attachment} instances.
         def bind(obj, input)
@@ -48,10 +40,6 @@ module Hanami
           @name_or_filename = name_or_filename
           @proc = proc
           @options = options
-        end
-
-        def static_filename?
-          name_or_filename.is_a?(String) && proc.nil?
         end
 
         def bind(obj)

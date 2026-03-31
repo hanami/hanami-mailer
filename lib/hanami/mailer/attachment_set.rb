@@ -10,8 +10,6 @@ module Hanami
     #
     # @api private
     class AttachmentSet
-      include Enumerable
-
       def initialize(attachments = [])
         @attachments = attachments
       end
@@ -22,10 +20,6 @@ module Hanami
         end
 
         self
-      end
-
-      def each(&block)
-        @attachments.each(&block)
       end
 
       def to_a
