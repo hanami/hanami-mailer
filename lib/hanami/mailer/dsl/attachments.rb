@@ -3,7 +3,7 @@
 module Hanami
   class Mailer
     module DSL
-      # Collection of attachments for a mailer.
+      # Collection of class-level attachment definitions for a mailer.
       #
       # @api private
       class Attachments
@@ -25,10 +25,12 @@ module Hanami
           definitions.each(&block)
         end
 
+        # Binds all definitions to a mailer instance and evaluates them, returning an
+        # {AttachmentSet} of {Attachment} instances.
         def bind(obj, input)
-          definitions.flat_map { |definition|
-            definition.bind(obj).call(input)
-          }
+          attachments = definitions.flat_map { |definition| definition.bind(obj).call(input) }
+
+          AttachmentSet.new(attachments)
         end
 
         def dup
@@ -36,7 +38,7 @@ module Hanami
         end
       end
 
-      # A single attachment declaration.
+      # A class-level attachment definition.
       #
       # @api private
       class Attachment
@@ -61,45 +63,38 @@ module Hanami
         end
       end
 
-      # A bound attachment definition that can be evaluated
+      # A bound attachment definition that can be evaluated in the context of a mailer instance.
       #
       # @api private
       class BoundAttachment
-        attr_reader :name_or_filename, :object, :options, :callable
-
         def initialize(name_or_filename, proc, object, **options)
           @name_or_filename = name_or_filename
           @object = object
           @options = options
-          @callable = PluckyProc.from_name(proc, name_or_filename, object)
+          @callable = PluckyProc.from_name(proc, name_or_filename, object) || static_callable
         end
 
-        # Evaluates the attachment definition and return an array of attachments.
+        # Evaluates the attachment definition and returns an array of Attachment objects.
         def call(input)
-          if callable
-            results = Array(callable.call(input))
-            results.map { |attachment_data| attachment_hash(attachment_data) }
-          else
-            # Static filename string with no proc or matching method
-            [
-              {
-                filename: name_or_filename,
-                content: name_or_filename,
-                inline: options[:inline],
-                static: true
-              }
-            ]
-          end
+          Array(@callable.call(input)).each { ensure_attachment(_1) }
         end
 
         private
 
-        def attachment_hash(data)
-          unless data.is_a?(AttachmentData)
-            raise ArgumentError, "Attachment blocks must return AttachmentData objects. Use the `file` helper method."
-          end
+        def static_callable
+          filename = @name_or_filename
+          attachment_paths = @object.class.config.attachment_paths
+          inline = @options[:inline]
 
-          data.to_h
+          ->(*) { Mailer::Attachment.from_file(filename, attachment_paths:, inline:) }
+        end
+
+        def ensure_attachment(value)
+          unless value.is_a?(Mailer::Attachment)
+            raise ArgumentError, <<~MSG
+              Attachment blocks must return Attachment objects. Use the `file` helper method.
+            MSG
+          end
         end
       end
     end

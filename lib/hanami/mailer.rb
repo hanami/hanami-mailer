@@ -4,7 +4,6 @@ require "dry/configurable"
 require "zeitwerk"
 
 require_relative "mailer/errors"
-require_relative "mailer/attachment_data"
 
 module Hanami
   # Base mailer class
@@ -59,16 +58,16 @@ module Hanami
     STANDARD_HEADERS = %i[from to cc bcc reply_to return_path subject].freeze
 
     class << self
-      # Helper method for creating attachment data objects
+      # Helper method for creating Attachment objects
       #
-      # This is a convenience method for creating AttachmentData objects
+      # This is a convenience method for creating Attachment objects
       # that can be passed to the `attachments:` parameter.
       #
       # @param filename [String] name of the file
       # @param content [String] file content
       # @param options [Hash] additional options (content_type, inline, etc.)
       #
-      # @return [AttachmentData] attachment data object
+      # @return [Attachment] attachment object
       #
       # @api public
       #
@@ -79,13 +78,8 @@ module Hanami
       #       Hanami::Mailer.file("invoice.pdf", pdf_bytes, content_type: "application/pdf")
       #     ]
       #   )
-      def file(filename, content, **options)
-        AttachmentData.new(
-          filename: filename,
-          content: content,
-          content_type: options[:content_type],
-          inline: options[:inline] || false
-        )
+      def file(filename, content, content_type: nil, inline: false)
+        Attachment.new(filename:, content:, content_type:, inline:)
       end
     end
 
@@ -223,7 +217,7 @@ module Hanami
     # Deliver the email
     #
     # @param headers [Hash] optional header overrides (from, to, cc, bcc, reply_to, subject)
-    # @param attachments [Array<Hash, AttachmentData>, nil] optional runtime attachments
+    # @param attachments [Array<Hash, Attachment>, nil] optional runtime attachments
     # @param input [Hash] input data for exposures and rendering
     #
     # @return [Delivery::Result]
@@ -239,7 +233,7 @@ module Hanami
     # Build the message without delivering it
     #
     # @param headers [Hash] optional header overrides (from, to, cc, bcc, reply_to, subject)
-    # @param attachments [Array<Hash, AttachmentData>, nil] optional runtime attachments
+    # @param attachments [Array<Hash, Attachment>, nil] optional runtime attachments
     # @param input [Hash] input data for exposures and rendering
     #
     # @return [Message]
@@ -270,24 +264,12 @@ module Hanami
       # Render body
       html_body, text_body = render(input, format:)
 
-      # Evaluate class-level attachments
-      attachment_data = self.class.attachments.bind(self, context)
-      attachment_objects = attachment_data.map do |data|
-        Attachment.new(
-          filename: data[:filename],
-          content: read_attachment_content(data[:content], static: data[:static]),
-          content_type: data[:content_type],
-          inline: data[:inline]
-        )
-      end
-
-      # Add runtime attachments
-      if attachments
-        runtime_attachments = process_runtime_attachments(attachments)
-        attachment_objects.concat(runtime_attachments)
-      end
-
-      ensure_unique_attachments attachment_objects
+      # Evaluate class-level attachments and merge with runtime attachments
+      runtime_attachments = attachments
+      attachments = self.class.attachments
+        .bind(self, context)
+        .concat(runtime_attachments)
+        .to_a
 
       delivery_options = self.class.delivery_options.bind(self).call(context)
 
@@ -302,7 +284,7 @@ module Hanami
         subject: headers[:subject],
         html_body:,
         text_body:,
-        attachments: attachment_objects,
+        attachments: attachments,
         headers: normalized_custom_headers,
         delivery_options:
       )
@@ -311,14 +293,14 @@ module Hanami
 
     # Helper method for creating attachments in attachment blocks
     #
-    # Returns an AttachmentData object that provides a structured, validated
+    # Returns an Attachment object that provides a structured, validated
     # way to define attachment data instead of using raw hashes.
     #
     # @param filename [String] name of the file
     # @param content [String] file content
     # @param options [Hash] additional options (content_type, inline, etc.)
     #
-    # @return [AttachmentData] attachment data object
+    # @return [Attachment] attachment object
     #
     # @api public
     #
@@ -346,35 +328,6 @@ module Hanami
       view.call(format:, **input).to_s
     end
 
-    def read_attachment_content(content, static: false)
-      # If content is a file path string, search for it in attachment_paths
-      if content.is_a?(String) && static
-        file_path = find_attachment_file(content)
-        if file_path
-          File.read(file_path)
-        else
-          # Static attachment file not found - raise error
-          raise MissingAttachmentError.new(content, self.class.config.attachment_paths)
-        end
-      else
-        content
-      end
-    end
-
-    def find_attachment_file(filename)
-      # If attachment_paths is configured, search there
-      if self.class.config.attachment_paths.any?
-        self.class.config.attachment_paths.each do |path|
-          full_path = File.join(path, filename)
-          return full_path if File.exist?(full_path)
-        end
-        nil
-      else
-        # Fall back to checking if the filename itself is a valid path
-        File.exist?(filename) ? filename : nil
-      end
-    end
-
     def default_delivery_method
       Delivery::Test.new
     end
@@ -390,43 +343,6 @@ module Hanami
         .split("_")
         .map(&:capitalize)
         .join("-")
-    end
-
-    # Processs runtime attachments into Attachment objects.
-    def process_runtime_attachments(attachments)
-      Array(attachments).map do |attachment|
-        data =
-          if attachment.is_a?(AttachmentData)
-            attachment
-          else
-            begin
-              AttachmentData.new(**attachment)
-            rescue ArgumentError => exception
-              # Re-raise with clearer message for missing keywords
-              if exception.message.include?("missing keyword")
-                keyword = exception.message[/missing keyword: :?(\w+)/, 1]
-                raise ArgumentError, "#{keyword} is required"
-              else
-                raise
-              end
-            end
-          end
-
-        Attachment.new(
-          filename: data.filename,
-          content: data.content,
-          content_type: data.content_type,
-          inline: data.inline
-        )
-      end
-    end
-
-    # Validates that all attachment filenames are unique.
-    def ensure_unique_attachments(attachments)
-      filenames = attachments.map(&:filename)
-      duplicates = filenames.select { |filename| filenames.count(filename) > 1 }.uniq
-
-      raise DuplicateAttachmentError, duplicates.first if duplicates.any?
     end
   end
 end

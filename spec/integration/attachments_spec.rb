@@ -303,7 +303,7 @@ RSpec.describe "Attachments" do
     end
 
     describe "error handling" do
-      it "raises ArgumentError when the attachment block returns a non-AttachmentData value" do
+      it "raises ArgumentError when the attachment block returns a non-Attachment value" do
         mailer_class = Class.new(Hanami::Mailer) do
           from "noreply@example.com"
           to "user@example.com"
@@ -316,7 +316,7 @@ RSpec.describe "Attachments" do
 
         expect {
           mailer_class.new.deliver
-        }.to raise_error(ArgumentError, /AttachmentData/)
+        }.to raise_error(ArgumentError, /Attachment objects/)
       end
     end
   end
@@ -344,7 +344,7 @@ RSpec.describe "Attachments" do
         expect(attachment.content).to eq("PDF content")
       end
 
-      it "accepts runtime attachments as AttachmentData objects" do
+      it "accepts runtime attachments as Attachment objects" do
         attachment_data = Hanami::Mailer.file("invoice.pdf", "Invoice content")
 
         result = mailer.deliver(
