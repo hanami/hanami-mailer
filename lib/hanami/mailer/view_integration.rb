@@ -8,7 +8,6 @@ module Hanami
     #
     # @api private
     module ViewIntegration
-      # @api private
       def self.included(base)
         base.class_eval do
           # Prepend the initializer module to wrap initialization
@@ -45,15 +44,12 @@ module Hanami
       #
       # @api private
       module PrependedMethods
-        # @api private
         def initialize(view: nil, **)
           view ||= DefaultViewBuilder.call(self) if self.class.config.integrate_view
           super
         end
 
         # Renders HTML and text bodies, handling missing templates per format.
-        #
-        # @api private
         def render(input, format: nil)
           html, html_error = try_render(:html, input) unless format == :text
           text, text_error = try_render(:text, input) unless format == :html
@@ -79,11 +75,7 @@ module Hanami
       # @api private
       class DefaultViewBuilder
         class << self
-          # Build a default view from exposures if Hanami::View is available
-          #
-          # @param mailer [Hanami::Mailer] the mailer instance
-          # @return [Hanami::View, nil]
-          # @api private
+          # Builds a default view from exposures if Hanami::View is available.
           def call(mailer)
             return nil if mailer.class.exposures.empty? && mailer.class.config.paths.empty?
 
@@ -100,11 +92,7 @@ module Hanami
 
           private
 
-          # Infer template path from class name
-          #
-          # @param mailer [Hanami::Mailer] the mailer instance
-          # @return [String, nil]
-          # @api private
+          # Infers template path from class name.
           #
           # @example
           #   Mailers::WelcomeMailer -> "mailers/welcome_mailer"
