@@ -9,8 +9,13 @@ module Hanami
       class Attachments
         attr_reader :definitions
 
-        def initialize(definitions = [])
-          @definitions = definitions
+        def initialize
+          @definitions = []
+        end
+
+        private def initialize_copy(source)
+          super
+          @definitions = source.definitions.map(&:dup)
         end
 
         def add(name_or_filename, proc = nil, **options)
@@ -23,10 +28,6 @@ module Hanami
           attachments = definitions.flat_map { |definition| definition.bind(obj).call(input) }
 
           AttachmentSet.new(attachments)
-        end
-
-        def dup
-          self.class.new(definitions.map(&:dup))
         end
       end
 
@@ -42,12 +43,13 @@ module Hanami
           @options = options
         end
 
-        def bind(obj)
-          BoundAttachment.new(name_or_filename, proc, obj, **options)
+        private def initialize_copy(source)
+          super
+          @options = source.options.dup
         end
 
-        def dup
-          self.class.new(name_or_filename, proc, **options)
+        def bind(obj)
+          BoundAttachment.new(name_or_filename, proc, obj, **options)
         end
       end
 
