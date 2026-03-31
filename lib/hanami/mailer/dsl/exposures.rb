@@ -60,8 +60,6 @@ module Hanami
           copy
         end
 
-        # rubocop:disable Metrics/PerceivedComplexity
-
         def call(input)
           # Avoid performance cost of tsorting when we don't need it
           names = dependencies? ? tsort : exposures.keys
@@ -81,7 +79,6 @@ module Hanami
               end
             }
         end
-        # rubocop:enable Metrics/PerceivedComplexity
 
         private
 
