@@ -17,10 +17,6 @@ module Hanami
           # Set to false to disable automatic view integration behavior
           setting :integrate_view, default: true
 
-          # Base path for template inference
-          # e.g., "mailers" will strip "mailers/" from "Mailers::WelcomeMailer" -> "welcome_mailer"
-          setting :template_inference_base, default: nil
-
           # Copy all settings from Hanami::View to support default view integration.
           # This allows mailers to configure view-related settings (like layouts_dir,
           # default_format, inflector, etc.) without having to manually redefine them.
@@ -99,14 +95,11 @@ module Hanami
           def inferred_template(mailer)
             return nil unless mailer.class.name
 
-            mailer.class.config.template_inference_base
             mailer.class.name
               .gsub("::", "/")
               .gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
               .gsub(/([a-z\d])([A-Z])/, '\1_\2')
               .downcase
-
-            # Keep the full path including the base - template_inference_base is just metadata
           end
 
           # rubocop:disable Metrics/AbcSize, Metrics/PerceivedComplexity

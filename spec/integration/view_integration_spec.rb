@@ -110,7 +110,6 @@ RSpec.describe "View integration" do
         dir = templates_dir
         klass = Class.new(Hanami::Mailer) {
           config.paths = [dir]
-          config.template_inference_base = "mailers"
 
           from "noreply@example.com"
           to "user@example.com"
