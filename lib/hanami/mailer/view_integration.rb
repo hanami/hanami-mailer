@@ -55,38 +55,21 @@ module Hanami
         #
         # @api private
         def render(input, format: nil)
-          html_exception = nil
-          text_exception = nil
+          html, html_error = try_render(:html, input) unless format == :text
+          text, text_error = try_render(:text, input) unless format == :html
 
-          html =
-            if format.nil? || format == :html
-              begin
-                render_view(:html, input)
-              rescue Hanami::View::TemplateNotFoundError => exception
-                html_exception = exception
-                nil
-              end
-            end
-
-          text =
-            if format.nil? || format == :text
-              begin
-                render_view(:text, input)
-              rescue Hanami::View::TemplateNotFoundError => exception
-                text_exception = exception
-                nil
-              end
-            end
-
-          if format.nil? && html_exception && text_exception
-            raise html_exception
-          elsif format == :html && html_exception
-            raise html_exception
-          elsif format == :text && text_exception
-            raise text_exception
-          end
+          # Tolerate one missing template if attempting to render both. Otherwise, consdier any
+          # error as fatal.
+          raise html_error if html_error && (format || text_error)
+          raise text_error if text_error && format
 
           [html, text]
+        end
+
+        def try_render(format, input)
+          [render_view(format, input), nil]
+        rescue Hanami::View::TemplateNotFoundError => exception
+          [nil, exception]
         end
       end
 
