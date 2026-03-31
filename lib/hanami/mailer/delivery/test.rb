@@ -21,7 +21,7 @@ module Hanami
           #
           # @api public
           def clear
-            @deliveries.clear
+            deliveries.clear
           end
         end
 
