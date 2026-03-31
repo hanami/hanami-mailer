@@ -317,7 +317,7 @@ module Hanami
     # Renders and returns HTML and text bodies.
     def render(input, format: nil)
       html_body = render_view(:html, input) if format.nil? || format == :html
-      text_body = render_view(:txt, input) if format.nil? || format == :txt
+      text_body = render_view(:text, input) if format.nil? || format == :text
       [html_body, text_body]
     end
 

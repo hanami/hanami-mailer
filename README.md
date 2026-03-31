@@ -543,7 +543,7 @@ class CustomMailer < Hanami::Mailer
           </body>
         </html>
       HTML
-    when :txt
+    when :text
       "Hello, #{user[:name]}!"
     end
   end

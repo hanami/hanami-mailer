@@ -8,7 +8,7 @@ RSpec.describe "Format restriction" do
       def call(format:, **)
         case format
         when :html then "<h1>Hello World!</h1>"
-        when :txt  then "Hello World!"
+        when :text then "Hello World!"
         end
       end
     }.new
@@ -40,9 +40,9 @@ RSpec.describe "Format restriction" do
     end
   end
 
-  describe "format: :txt" do
+  describe "format: :text" do
     it "renders only the text body" do
-      result = mailer.deliver(format: :txt)
+      result = mailer.deliver(format: :text)
 
       expect(result.message.html_body).to be_nil
       expect(result.message.text_body).to eq("Hello World!")
@@ -51,7 +51,7 @@ RSpec.describe "Format restriction" do
 
   describe "with prepare" do
     it "respects format restriction in prepare" do
-      message = mailer.prepare(format: :txt)
+      message = mailer.prepare(format: :text)
 
       expect(message.html_body).to be_nil
       expect(message.text_body).to eq("Hello World!")

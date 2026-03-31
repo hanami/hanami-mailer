@@ -23,7 +23,7 @@ RSpec.describe "View integration" do
     describe "automatic view building" do
       before do
         write "welcome_mailer.html.erb", "<h1>Welcome <%= name %></h1>"
-        write "welcome_mailer.txt.erb", "Welcome <%= name %>"
+        write "welcome_mailer.text.erb", "Welcome <%= name %>"
       end
 
       let(:mailer_class) {
@@ -297,7 +297,7 @@ RSpec.describe "View integration" do
         def call(format:, **input)
           case format
           when :html then "<h1>Hello, #{input[:name]}!</h1>"
-          when :txt  then "Hello, #{input[:name]}!"
+          when :text then "Hello, #{input[:name]}!"
           end
         end
       }.new
@@ -336,7 +336,7 @@ RSpec.describe "View integration" do
       let(:view) {
         Class.new {
           def call(format:, **)
-            raise Hanami::View::TemplateNotFoundError.new("mailer", format, []) if format == :txt
+            raise Hanami::View::TemplateNotFoundError.new("mailer", format, []) if format == :text
 
             "<p>HTML works</p>"
           end
@@ -372,7 +372,7 @@ RSpec.describe "View integration" do
         def call(format:, **)
           case format
           when :html then "<p>Test</p>"
-          when :txt  then "Test"
+          when :text then "Test"
           end
         end
       }.new

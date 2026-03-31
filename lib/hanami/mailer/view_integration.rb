@@ -58,29 +58,31 @@ module Hanami
           html_exception = nil
           text_exception = nil
 
-          html = if format.nil? || format == :html
-            begin
-              render_view(:html, input)
-            rescue Hanami::View::TemplateNotFoundError => exception
-              html_exception = exception
-              nil
+          html =
+            if format.nil? || format == :html
+              begin
+                render_view(:html, input)
+              rescue Hanami::View::TemplateNotFoundError => exception
+                html_exception = exception
+                nil
+              end
             end
-          end
 
-          text = if format.nil? || format == :txt
-            begin
-              render_view(:txt, input)
-            rescue Hanami::View::TemplateNotFoundError => exception
-              text_exception = exception
-              nil
+          text =
+            if format.nil? || format == :text
+              begin
+                render_view(:text, input)
+              rescue Hanami::View::TemplateNotFoundError => exception
+                text_exception = exception
+                nil
+              end
             end
-          end
 
           if format.nil? && html_exception && text_exception
             raise html_exception
           elsif format == :html && html_exception
             raise html_exception
-          elsif format == :txt && text_exception
+          elsif format == :text && text_exception
             raise text_exception
           end
 
