@@ -1,0 +1,14 @@
+name:
+  gem: hanami-mailer
+  constant: Hanami::Mailer
+github_org: hanami
+gemspec:
+  authors: ["Hanakai team"]
+  email: ["info@hanakai.org"]
+  summary: "Email delivery for Hanami applications and Ruby projects."
+  homepage: "https://hanamirb.org"
+  required_ruby_version: ">= 3.1.0"
+  runtime_dependencies:
+    - ["dry-configurable", "~> 1.0"]
+    - ["mail", "~> 2.7"]
+    - ["zeitwerk"]
