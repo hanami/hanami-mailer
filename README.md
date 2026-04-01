@@ -1,449 +1,605 @@
 # Hanami::Mailer
 
-Mail for Ruby applications.
-
-## Version
-
-**This branch contains the code for `hanami-mailer` 2.x.**
-
-## Status
-
-[![Gem Version](https://badge.fury.io/rb/hanami-mailer.svg)](https://badge.fury.io/rb/hanami-mailer)
-[![CI](https://github.com/hanami/mailer/workflows/ci/badge.svg?branch=main)](https://github.com/hanami/mailer/actions?query=workflow%3Aci+branch%3Amain)
-
-## Contact
-
-* Home page: http://hanamirb.org
-* Mailing List: http://hanamirb.org/mailing-list
-* API Doc: http://rdoc.info/gems/hanami-mailer
-* Bugs/Issues: https://github.com/hanami/mailer/issues
-* Support: http://stackoverflow.com/questions/tagged/hanami
-* Chat: http://chat.hanamirb.org
+Email delivery for Hanami applications and Ruby projects.
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'hanami-mailer'
+gem "hanami-mailer"
 ```
 
 And then execute:
 
-    $ bundle
-
-Or install it yourself as:
-
-    $ gem install hanami-mailer
+```bash
+$ bundle install
+```
 
 ## Usage
 
-### Conventions
+### Basic mailer
 
-  * Templates are searched under `Hanami::Mailer::Configuration#root`, set this value according to your app structure (eg. `"app/templates"`).
-  * A mailer will look for a template with a file name that is composed by its full class name (eg. `"articles/index"`).
-  * A template must have two concatenated extensions: one for the format and one for the engine (eg. `".html.erb"`).
-  * The framework must be loaded before rendering the first time: `Hanami::Mailer.finalize(configuration)`.
-
-### Mailers
-
-A simple mailer looks like this:
+The simplest mailer with static headers.
 
 ```ruby
-require 'hanami/mailer'
-require 'ostruct'
-
-# Create two files: `invoice.html.erb` and `invoice.txt.erb`
-
-configuration = Hanami::Mailer::Configuration.new do |config|
-  config.delivery_method = :test
-end
-
-class InvoiceMailer < Hanami::Mailer
+class WelcomeMailer < Hanami::Mailer
   from "noreply@example.com"
-  to ->(locals) { locals.fetch(:user).email }
+  to "user@example.com"
+  subject "Welcome to our app!"
 end
 
-configuration = Hanami::Mailer.finalize(configuration)
-
-invoice = OpenStruct.new(number: 23)
-mailer  = InvoiceMailer.new(configuration: configuration)
-mail    = mailer.deliver(invoice: invoice)
-
-mail
-  # => #<Mail::Message:70303354246540, Multipart: true, Headers: <Date: Wed, 22 Mar 2017 11:48:57 +0100>, <From: noreply@example.com>, <To: user@example.com>, <Cc: >, <Bcc: >, <Message-ID: <58d25699e47f9_b4e13ff0c503e4f4632e6@escher.mail>>, <Subject: >, <Mime-Version: 1.0>, <Content-Type: multipart/alternative; boundary=--==_mimepart_58d25699e42d2_b4e13ff0c503e4f463186>, <Content-Transfer-Encoding: 7bit>>
-
-mail.to_s
-  # =>
-  # From: noreply@example.com
-  # To: user@example.com
-  # Message-ID: <58d25699e47f9_b4e13ff0c503e4f4632e6@escher.mail>
-  # Subject:
-  # Mime-Version: 1.0
-  # Content-Type: multipart/alternative;
-  #  boundary="--==_mimepart_58d25699e42d2_b4e13ff0c503e4f463186";
-  #  charset=UTF-8
-  # Content-Transfer-Encoding: 7bit
-  #
-  #
-  # ----==_mimepart_58d25699e42d2_b4e13ff0c503e4f463186
-  # Content-Type: text/plain;
-  #  charset=UTF-8
-  # Content-Transfer-Encoding: 7bit
-  #
-  # Invoice #23
-  #
-  # ----==_mimepart_58d25699e42d2_b4e13ff0c503e4f463186
-  # Content-Type: text/html;
-  #  charset=UTF-8
-  # Content-Transfer-Encoding: 7bit
-  #
-  # <html>
-  #   <body>
-  #     <h1>Invoice template</h1>
-  #   </body>
-  # </html>
-  #
-  # ----==_mimepart_58d25699e42d2_b4e13ff0c503e4f463186--
+mailer = WelcomeMailer.new
+mailer.deliver
 ```
 
-A mailer with `.to` and `.from` addresses and mailer delivery:
+**Templates:**
 
-```ruby
-require 'hanami/mailer'
-
-configuration = Hanami::Mailer::Configuration.new do |config|
-  config.delivery_method = :smtp,
-                           address:              "smtp.gmail.com",
-                           port:                 587,
-                           domain:               "example.com",
-                           user_name:            ENV['SMTP_USERNAME'],
-                           password:             ENV['SMTP_PASSWORD'],
-                           authentication:       "plain",
-                           enable_starttls_auto: true
-end
-
-class WelcomeMailer < Hanami::Mailer
-  return_path 'bounce@sender.com'
-  from 'noreply@sender.com'
-  to   'noreply@recipient.com'
-  cc   'cc@sender.com'
-  bcc  'alice@example.com'
-
-  subject 'Welcome'
-end
-
-WelcomeMailer.new(configuration: configuration).call(locals)
-```
-
-### Locals
-
-The set of objects passed in the `deliver` call are called `locals` and are available inside the mailer and the template.
-
-```ruby
-require 'hanami/mailer'
-require 'ostruct'
-
-user = OpenStruct.new(name: Luca', email: 'user@hanamirb.org')
-
-class WelcomeMailer < Hanami::Mailer
-  from    'noreply@sender.com'
-  subject 'Welcome'
-  to      ->(locals) { locals.fetch(:user).email }
-end
-
-WelcomeMailer.new(configuration: configuration).deliver(user: luca)
-```
-
-The corresponding `erb` file:
+`app/templates/mailers/welcome.html.erb`:
 
 ```erb
-Hello <%= user.name %>!
+<h1>Welcome to our app!</h1>
 ```
 
-### Scope
+`app/templates/mailers/welcome.txt.erb`:
 
-All public methods defined in the mailer are accessible from the template:
+```erb
+Welcome to our app!
+```
+
+### Dynamic headers and exposures
+
+Use blocks to compute headers dynamically based on input data, just like we do for `expose` in Hanami View.
+
+`expose` itself is also available. We use Hanami View by default to render the mail bodies, and `expose` passes values to the view templates.
 
 ```ruby
-require 'hanami/mailer'
+class UserMailer < Hanami::Mailer
+  from "notifications@example.com"
+  to { |user:| user[:email] }
+  subject { |user:| "Hello, #{user[:name]}!" }
 
-class WelcomeMailer < Hanami::Mailer
-  from    'noreply@sender.com'
-  to      'noreply@recipient.com'
-  subject 'Welcome'
+  expose :user
+end
 
-  def greeting
-    'Ahoy'
+mailer = UserMailer.new
+mailer.deliver(user: {name: "Alice", email: "alice@example.com"})
+```
+
+**Templates:**
+
+`app/templates/mailers/user_mailer.html.erb`:
+
+```erb
+<h1>Hello, <%= user[:name] %>!</h1>
+```
+
+`app/templates/mailers/user_mailer.txt.erb`:
+
+```erb
+Hello, <%= user[:name] %>!
+```
+
+Exposures support:
+
+- Simple value passing: `expose :user`
+- Computed values with blocks: `expose(:total) { |order:| order[:items].sum { |item| item[:price] } }`
+- Dependencies on other exposures: `expose(:greeting) { |user:| "Hello, #{user[:name]}!" }`
+- Default values: `expose :greeting, default: "Hello"`
+- Private exposures (available to other exposures but not to templates): `expose :raw_data, private: true`
+
+### Standard and custom email headers
+
+Aside from the standard headers (which have their own dedicated convenience methods), you can add additional custom headers.
+
+```ruby
+class CampaignMailer < Hanami::Mailer
+  # Standard headers, with dedicated class methods
+  from "sender@example.com"
+  to { |recipient:| recipient[:email] }
+  cc { |cc_list:| cc_list }
+  bcc "archive@example.com"
+  reply_to "support@example.com"
+  return_path "bounces@example.com"
+  subject { |subject_line:| subject_line }
+
+  # Custom headers for bulk emails
+  header :precedence, "bulk"
+  header(:list_unsubscribe) { |unsubscribe_url:| "<#{unsubscribe_url}>" }
+
+  # Custom headers for tracking (symbol names auto-convert to Title-Case)
+  header(:x_campaign_id) { |campaign:| campaign[:id] }   # => "X-Campaign-Id"
+  header(:x_user_segment) { |user:| user[:segment] }     # => "X-User-Segment"
+
+  # Use strings for exact casing control
+  header "X-Mailer-Version", "2.0"
+end
+```
+
+### Overriding headers at delivery time
+
+Override any header when calling `deliver`.
+
+```ruby
+class NotificationMailer < Hanami::Mailer
+  from "notifications@example.com"
+  to "default@example.com"
+  subject "Default Subject"
+end
+
+mailer = NotificationMailer.new
+mailer.deliver(
+  headers: {
+    to: "priority-user@example.com",
+    subject: "URGENT: Important Update",
+    cc: "manager@example.com",
+    x_priority: "1"
+  }
+)
+```
+
+### Static attachments from files
+
+Load attachment files from configured paths.
+
+```ruby
+class WelcomePackMailer < Hanami::Mailer
+  from "welcome@example.com"
+  to { |user:| user[:email] }
+  subject "Welcome Pack"
+
+  # Configure paths to search for attachment files
+  config.attachment_paths = ["public/attachments"]
+
+  # These files will be loaded from the configured paths
+  attachment "terms.pdf"
+  attachment "getting-started-guide.pdf"
+  attachment "company-logo.png"
+end
+```
+
+You can configure multiple attachment paths in a base mailer class:
+
+```ruby
+class ApplicationMailer < Hanami::Mailer
+  config.attachment_paths = [
+    "app/attachments",
+    "app/assets/pdfs"
+  ]
+end
+```
+
+If a file cannot be found in any of the configured paths, a `MissingAttachmentError` is raised.
+
+### Dynamic attachments from blocks
+
+Return one or more attachments from an `attachment` block, which processes arguments in the same way as `expose` and `header`. Use the `file` helper to create attachment objects.
+
+```ruby
+class ReportMailer < Hanami::Mailer
+  from "reports@example.com"
+  to { |user:| user[:email] }
+  subject "Monthly Report"
+
+  expose :user
+
+  # A single attachment from a block
+  attachment do |user:|
+    file(
+      "report-#{user[:id]}.pdf",
+      generate_report_pdf(user),
+      content_type: "application/pdf"
+    )
+  end
+
+  # You can have multiple attachment blocks
+  attachment do
+    file("summary.txt", "Here is your summary.")
+  end
+
+  private
+
+  def generate_report_pdf(user)
+    # ... generate PDF content
   end
 end
 ```
 
-```erb
-<h2><%= greeting %></h2>
-```
-
-### Template
-
-The template file must be located under the relevant `root` and must match the inflected snake case of the mailer class name.
+You can also return multiple attachments from a single block:
 
 ```ruby
-# Given this root
-configuration.root      # => #<Pathname:app/templates>
-
-# For InvoiceMailer, it looks for:
-#  * app/templates/invoice_mailer.html.erb
-#  * app/templates/invoice_mailer.txt.erb
+attachment do |documents:|
+  documents.map do |doc|
+    file(doc[:name], doc[:content])
+  end
+end
 ```
 
-If we want to specify a different template, we can do:
+Or use a named instance method instead of a block:
 
 ```ruby
 class InvoiceMailer < Hanami::Mailer
-  template 'invoice'
-end
+  from "billing@example.com"
+  to { |customer:| customer[:email] }
+  subject "Invoice"
 
-# It will look for:
-#  * app/templates/invoice.html.erb
-#  * app/templates/invoice.txt.erb
-```
+  expose :invoice
 
-### Engines
+  attachment :invoice_pdf
 
-The builtin rendering engine is [ERb](http://en.wikipedia.org/wiki/ERuby).
+  private
 
-This is the list of the supported engines.
-They are listed in order of **higher precedence**, for a given extension.
-For instance, if [ERubis](http://www.kuwata-lab.com/erubis/) is loaded, it will be preferred over ERb to render `.erb` templates.
-
-<table>
-  <tr>
-    <th>Engine</th>
-    <th>Extensions</th>
-  </tr>
-  <tr>
-    <td>Erubis</td>
-    <td>erb, rhtml, erubis</td>
-  </tr>
-  <tr>
-    <td>ERb</td>
-    <td>erb, rhtml</td>
-  </tr>
-  <tr>
-    <td>Redcarpet</td>
-    <td>markdown, mkd, md</td>
-  </tr>
-  <tr>
-    <td>RDiscount</td>
-    <td>markdown, mkd, md</td>
-  </tr>
-  <tr>
-    <td>Kramdown</td>
-    <td>markdown, mkd, md</td>
-  </tr>
-  <tr>
-    <td>Maruku</td>
-    <td>markdown, mkd, md</td>
-  </tr>
-  <tr>
-    <td>BlueCloth</td>
-    <td>markdown, mkd, md</td>
-  </tr>
-  <tr>
-    <td>Asciidoctor</td>
-    <td>ad, adoc, asciidoc</td>
-  </tr>
-  <tr>
-    <td>Builder</td>
-    <td>builder</td>
-  </tr>
-  <tr>
-    <td>CSV</td>
-    <td>rcsv</td>
-  </tr>
-  <tr>
-    <td>CoffeeScript</td>
-    <td>coffee</td>
-  </tr>
-  <tr>
-    <td>WikiCloth</td>
-    <td>wiki, mediawiki, mw</td>
-  </tr>
-  <tr>
-    <td>Creole</td>
-    <td>wiki, creole</td>
-  </tr>
-  <tr>
-    <td>Etanni</td>
-    <td>etn, etanni</td>
-  </tr>
-  <tr>
-    <td>Haml</td>
-    <td>haml</td>
-  </tr>
-  <tr>
-    <td>Less</td>
-    <td>less</td>
-  </tr>
-  <tr>
-    <td>Liquid</td>
-    <td>liquid</td>
-  </tr>
-  <tr>
-    <td>Markaby</td>
-    <td>mab</td>
-  </tr>
-  <tr>
-    <td>Nokogiri</td>
-    <td>nokogiri</td>
-  </tr>
-  <tr>
-    <td>Plain</td>
-    <td>html</td>
-  </tr>
-  <tr>
-    <td>RDoc</td>
-    <td>rdoc</td>
-  </tr>
-  <tr>
-    <td>Radius</td>
-    <td>radius</td>
-  </tr>
-  <tr>
-    <td>RedCloth</td>
-    <td>textile</td>
-  </tr>
-  <tr>
-    <td>Sass</td>
-    <td>sass</td>
-  </tr>
-  <tr>
-    <td>Scss</td>
-    <td>scss</td>
-  </tr>
-  <tr>
-    <td>Slim</td>
-    <td>slim</td>
-  </tr>
-  <tr>
-    <td>String</td>
-    <td>str</td>
-  </tr>
-  <tr>
-    <td>Yajl</td>
-    <td>yajl</td>
-  </tr>
-</table>
-
-
-### Configuration
-
-__Hanami::Mailer__ can be configured with a DSL that determines its behavior.
-It supports a few options:
-
-```ruby
-require "hanami/mailer"
-
-configuration = Hanami::Mailer::Configuration.new do |config|
-  # Set the root path where to search for templates
-  # Argument: String, Pathname, #to_pathname, defaults to the current directory
-  #
-  config.root = "path/to/root"
-
-  # Set the default charset for emails
-  # Argument: String, defaults to "UTF-8"
-  #
-  config.default_charset = "iso-8859"
-
-  # Set the delivery method
-  # Argument: Symbol
-  # Argument: Hash, optional configurations
-  config.delivery_method = :smtp
-end
-```
-
-### Attachments
-
-Attachments can be added with the following API:
-
-```ruby
-class InvoiceMailer < Hanami::Mailer
-  # ...
-  before do |mail, locals|
-    mail.attachments["invoice-#{locals.fetch(:invoice).number}.pdf"] = 'path/to/invoice.pdf'
+  def invoice_pdf(invoice:)
+    file(
+      "invoice-#{invoice[:number]}.pdf",
+      generate_pdf(invoice),
+      content_type: "application/pdf"
+    )
   end
 end
 ```
 
-### Delivery Method
+### Inline attachments (for embedding images in HTML)
 
-The global delivery method is defined through the __Hanami::Mailer__ configuration, as:
-
-```ruby
-configuration = Hanami::Mailer::Configuration.new do |config|
-  config.delivery_method = :smtp
-end
-```
+Use inline attachments to embed images in your email HTML. The Content-ID is based on the filename, so you can reference it using `cid:filename`.
 
 ```ruby
-configuration = Hanami::Mailer::Configuration.new do |config|
-  config.delivery_method = :smtp, { address: "localhost", port: 1025 }
-end
-```
+class NewsletterMailer < Hanami::Mailer
+  from "news@example.com"
+  to { |subscriber:| subscriber[:email] }
+  subject "Weekly Newsletter"
 
-Builtin options are:
+  expose :subscriber
 
-  * Exim (`:exim`)
-  * Sendmail (`:sendmail`)
-  * SMTP (`:smtp`, for local installations)
-  * SMTP Connection (`:smtp_connection`, via `Net::SMTP` - for remote installations)
-  * Test (`:test`, for testing purposes)
-
-### Custom Delivery Method
-
-Developers can specify their own custom delivery policy:
-
-```ruby
-require 'hanami/mailer'
-
-class MandrillDeliveryMethod
-  def initialize(options)
-    @options = options
+  attachment do
+    file("header-image.png", header_image_data, inline: true)
   end
 
-  def deliver!(mail)
-    # ...
+  private
+
+  def header_image_data
+    File.read("app/assets/images/newsletter-header.png")
+  end
+end
+```
+
+In your HTML template, reference inline attachments using `cid:`:
+
+```html
+<img src="cid:header-image.png" alt="Newsletter Header">
+```
+
+Static attachments can also be made inline:
+
+```ruby
+attachment "logo.png", inline: true
+```
+
+### Runtime attachments
+
+Add attachments at delivery time without defining them at the class level. This is useful for one-off or conditional attachments, or pre-generated files passed from calling code.
+
+```ruby
+class OrderMailer < Hanami::Mailer
+  from "orders@example.com"
+  to { |customer:| customer[:email] }
+  subject "Order Confirmation"
+
+  # Class-level attachment always included
+  attachment "terms.pdf"
+end
+
+mailer = OrderMailer.new
+
+# Add runtime attachments using hashes
+mailer.deliver(
+  customer: {email: "customer@example.com"},
+  attachments: [
+    {filename: "invoice-123.pdf", content: pdf_bytes},
+    {filename: "receipt.txt", content: "Thank you!"}
+  ]
+)
+# All three attachments are included: terms.pdf, invoice-123.pdf, and receipt.txt
+
+# You can also use the Hanami::Mailer.file helper
+mailer.deliver(
+  customer: {email: "customer@example.com"},
+  attachments: [
+    Hanami::Mailer.file("invoice-123.pdf", pdf_bytes, content_type: "application/pdf")
+  ]
+)
+```
+
+### Delivery options
+
+Delivery options are delivery-method-specific parameters that customize how a message is sent. They are evaluated the same way as headers and exposures, then passed through to the delivery method on the `Message` object.
+
+A third-party email service might use these for scheduled sending, priority levels, or tracking:
+
+```ruby
+class CampaignMailer < Hanami::Mailer
+  from "campaigns@example.com"
+  to { |recipient:| recipient[:email] }
+  subject "Special Offer"
+
+  # Static delivery option
+  delivery_option :track_opens, true
+
+  # Dynamic delivery option
+  delivery_option(:send_at) { |scheduled_time:| scheduled_time }
+  delivery_option(:tags) { |campaign:| ["campaign-#{campaign[:id]}"] }
+end
+
+mailer = CampaignMailer.new(delivery_method: postmark_delivery)
+mailer.deliver(
+  recipient: {email: "user@example.com"},
+  campaign: {id: 42},
+  scheduled_time: Time.now + 3600
+)
+```
+
+The delivery method receives these options via `message.delivery_options` and can act on them however it sees fit.
+
+### Delivery methods
+
+`Hanami::Mailer` expects the delivery method to be provided as a `delivery_method:` dependency at initialization.
+
+Every delivery method must respond to `#call(message)` and return a `Delivery::Result`.
+
+#### Test delivery (default)
+
+The test delivery method stores results in memory. It's the default when no delivery method is specified:
+
+```ruby
+mailer = WelcomeMailer.new
+result = mailer.deliver(user: user)
+
+result.success?       # => true
+result.message        # => the Hanami::Mailer::Message that was delivered
+
+# Inspect all deliveries
+Hanami::Mailer::Delivery::Test.deliveries       # => [result, ...]
+Hanami::Mailer::Delivery::Test.deliveries.size   # => 1
+Hanami::Mailer::Delivery::Test.clear             # reset between tests
+```
+
+#### SMTP delivery
+
+For production use, provide an SMTP delivery method:
+
+```ruby
+smtp = Hanami::Mailer::Delivery::SMTP.new(
+  address: "smtp.example.com",
+  port: 587,
+  user_name: ENV["SMTP_USERNAME"],
+  password: ENV["SMTP_PASSWORD"],
+  authentication: :plain,
+  enable_starttls_auto: true
+)
+
+mailer = WelcomeMailer.new(delivery_method: smtp)
+result = mailer.deliver(user: user)
+
+result.success?   # => true if SMTP accepted the message
+result.response   # => the Mail::Message object
+result.error      # => nil on success, the exception on failure
+```
+
+#### Custom delivery methods
+
+Implement your own delivery method by creating a class that responds to `#call(message)` and returns a `Delivery::Result`:
+
+```ruby
+class MyApiDelivery
+  def call(message)
+    response = SomeEmailApi.send(
+      from: message.from,
+      to: message.to,
+      subject: message.subject,
+      html: message.html_body,
+      options: message.delivery_options
+    )
+
+    Hanami::Mailer::Delivery::Result.new(
+      message: message,
+      response: response,
+      success: response.ok?
+    )
+  rescue => error
+    Hanami::Mailer::Delivery::Result.new(
+      message: message,
+      success: false,
+      error: error
+    )
+  end
+end
+```
+
+Third-party delivery methods can subclass `Delivery::Result` to expose service-specific attributes:
+
+```ruby
+class Postmark::Result < Hanami::Mailer::Delivery::Result
+  attr_reader :message_id, :submitted_at
+
+  def initialize(message_id:, submitted_at: nil, **)
+    super(**)
+    @message_id = message_id
+    @submitted_at = submitted_at
+  end
+end
+```
+
+#### Wiring delivery in a Hanami app
+
+Below is an example of how you could wire up a delivery method in a Hanami app. (A more streamlined integration experience is planned for future work.)
+
+```ruby
+# In your Hanami app, configure a delivery method provider
+Hanami.app.register_provider :mailer do
+  start do
+    require "hanami/mailer"
+
+    register "mailer.delivery_method", Hanami::Mailer::Delivery::SMTP.new(
+      address: target[:settings].smtp_address,
+      port: target[:settings].smtp_port,
+      user_name: target[:settings].smtp_username,
+      password: target[:settings].smtp_password,
+      authentication: :plain,
+      enable_starttls_auto: true
+    )
   end
 end
 
-configuration = Hanami::Mailer::Configuration.new do |config|
-  config.delivery_method = MandrillDeliveryMethod,
-                           username: ENV['MANDRILL_USERNAME'],
-                           password: ENV['MANDRILL_API_KEY']
+class OrderMailer < Hanami::Mailer
+  include Deps["mailer.delivery_method"]
+
+  from "orders@example.com"
+  to { |customer:| customer[:email] }
+  subject "Order Confirmation"
+
+  expose :customer
 end
 ```
 
-The class passed to `.delivery_method=` must accept an optional set of options
-with the constructor (`#initialize`) and respond to `#deliver!`.
+### Preparing messages without delivering
 
-### Multipart Delivery
-
-All the email are sent as multipart messages by default.
-For a given mailer, the framework looks up for associated text (`.txt`) and `HTML` (`.html`) templates and render them.
+Use `prepare` to build a `Message` without sending it. This is useful for inspection, queuing, or delivering later through a different method.
 
 ```ruby
-InvoiceMailer.new(configuration: configuration).deliver({})           # delivers both text and html templates
-InvoiceMailer.new(configuration: configuration).deliver(format: :txt) # delivers only text template
+class WelcomeMailer < Hanami::Mailer
+  from "welcome@example.com"
+  to { |user:| user[:email] }
+  subject { |user:| "Welcome, #{user[:name]}!" }
+
+  expose :user
+end
+
+mailer = WelcomeMailer.new
+message = mailer.prepare(user: {name: "Alice", email: "alice@example.com"})
+
+message.from       # => ["welcome@example.com"]
+message.to         # => ["alice@example.com"]
+message.subject    # => "Welcome, Alice!"
+message.html_body  # => rendered HTML (if templates exist)
+message.text_body  # => rendered text (if templates exist)
+
+# Deliver the prepared message directly through a delivery method
+smtp = Hanami::Mailer::Delivery::SMTP.new(address: "smtp.example.com")
+smtp.call(message)
 ```
 
-Please note that **they aren't both mandatory, but at least one of them MUST** be present.
+### Inheritance
 
-## Versioning
+Mailers support inheritance, which is useful for sharing common configuration:
 
-__Hanami::Mailer__ uses [Semantic Versioning 2.0.0](http://semver.org)
+```ruby
+class ApplicationMailer < Hanami::Mailer
+  from "noreply@example.com"
+  config.attachment_paths = ["app/attachments"]
+end
 
-## Copyright
+class WelcomeMailer < ApplicationMailer
+  to { |user:| user[:email] }
+  subject "Welcome!"
 
-Copyright © 2015-2021 Luca Guidi – Released under MIT License
+  expose :user
+end
 
-This project was formerly known as Lotus (`lotus-mailer`).
+class NewsletterMailer < ApplicationMailer
+  to { |subscriber:| subscriber[:email] }
+  subject "Weekly Newsletter"
+
+  expose :subscriber
+
+  attachment "terms.pdf"
+end
+```
+
+Headers, exposures, attachments, and delivery options are all inherited and can be extended in subclasses.
+
+### Custom rendering without Hanami View
+
+If you don't use Hanami View, override the private rendering methods. This is also a hook for integration with other rendering systems like Phlex.
+
+```ruby
+class CustomMailer < Hanami::Mailer
+  from "custom@example.com"
+  to { |user:| user[:email] }
+  subject "Custom Email"
+
+  expose :user
+
+  private
+
+  def render_view(format, input)
+    user = input[:user]
+
+    case format
+    when :html
+      <<~HTML
+        <html>
+          <body>
+            <h1>Hello, #{user[:name]}!</h1>
+          </body>
+        </html>
+      HTML
+    when :text
+      "Hello, #{user[:name]}!"
+    end
+  end
+end
+```
+
+### Testing
+
+#### Checking deliveries
+
+```ruby
+RSpec.describe OrderConfirmationMailer do
+  before { Hanami::Mailer::Delivery::Test.clear }
+
+  it "sends confirmation email" do
+    mailer = OrderConfirmationMailer.new
+    result = mailer.deliver(order: {id: 123}, customer: {email: "test@example.com"})
+
+    # Check the result directly
+    expect(result.success?).to be true
+    expect(result.message.to).to include("test@example.com")
+    expect(result.message.subject).to include("123")
+
+    # Or inspect all deliveries
+    expect(Hanami::Mailer::Delivery::Test.deliveries.size).to eq(1)
+  end
+end
+```
+
+#### Inspecting prepared messages
+
+```ruby
+RSpec.describe WelcomeMailer do
+  it "builds the expected message" do
+    mailer = WelcomeMailer.new
+    message = mailer.prepare(user: {name: "Alice", email: "alice@example.com"})
+
+    expect(message.from).to eq(["noreply@example.com"])
+    expect(message.to).to eq(["alice@example.com"])
+    expect(message.subject).to eq("Welcome, Alice!")
+    expect(message.html_body).to include("Hello")
+
+    # No email was delivered
+    expect(Hanami::Mailer::Delivery::Test.deliveries).to be_empty
+  end
+end
+```
+
+## Contributing
+
+Bug reports and pull requests are welcome on GitHub at https://github.com/hanami/mailer.
+
+## License
+
+The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+
+## Code of Conduct
+
+Everyone interacting in the Hanami::Mailer project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/hanami/mailer/blob/main/CODE_OF_CONDUCT.md).

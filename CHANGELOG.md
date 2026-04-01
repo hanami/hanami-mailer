@@ -1,9 +1,47 @@
 # Hanami::Mailer
 Mail for Ruby applications
 
-## v2.0.0.alpha1 (unreleased)
+## v2.0.0.alpha1 - 2024-XX-XX
 ### Changed
-- [Luca Guidi] Drop support for Ruby: MRI 2.3, 2.4, 2.5, 2.6
+- Complete rewrite of Hanami::Mailer for Hanami 2.0
+- Simplified DSL for defining mailers
+- Replaced template system with Hanami::View 2.x integration
+- New exposure system borrowed from Hanami::View for consistent data preparation
+- Pluggable delivery methods with cleaner API
+- Removed dependency on hanami-utils and tilt
+- Drop support for Ruby: MRI 2.3, 2.4, 2.5, 2.6
+- Minimum Ruby version: 3.0
+
+### Added
+- `Hanami::Mailer::Message` - immutable email message representation
+- `Hanami::Mailer::Delivery::Test` - in-memory delivery for testing
+- `Hanami::Mailer::Delivery::Smtp` - SMTP delivery method
+- Exposure system with dependency resolution and topological sorting
+- Support for static and dynamic attachments
+- Support for inline attachments with content IDs
+- Multiple attachments per mailer
+- `expose` DSL for defining template data
+- `attachment` DSL for defining email attachments
+- Improved inheritance support for mailers
+- Configuration via `Dry::Configurable`
+- `prepare` method to build messages without delivering
+- `default_from` configuration option
+- `default_charset` configuration option
+
+### Removed
+- Global configuration class `Hanami::Mailer::Configuration`
+- Configuration finalization requirement
+- `before` callbacks (use exposures and regular methods instead)
+- Template inference from mailer class name (use Hanami::View integration)
+- `template` DSL method
+- Direct template rendering without view integration
+- Dependency on `hanami-utils`
+- Dependency on `tilt`
+- `return_path` DSL method (can be added via custom headers if needed)
+
+### Fixed
+- Thread-safety improvements
+- Better error messages for missing configuration
 
 ## v1.3.3 - 2021-01-14
 ### Added

@@ -1,0 +1,396 @@
+# frozen_string_literal: true
+
+require "tmpdir"
+
+RSpec.describe "View integration" do
+  let(:mailer) { mailer_class.new }
+
+  describe "with integration enabled (default)" do
+    around do |example|
+      Dir.mktmpdir do |dir|
+        @templates_dir = Pathname(dir)
+        example.run
+      end
+    end
+
+    let(:templates_dir) { @templates_dir }
+
+    def write(path, content)
+      templates_dir.join(File.dirname(path)).mkpath
+      File.write(templates_dir.join(path), content)
+    end
+
+    describe "automatic view building" do
+      before do
+        write "welcome_mailer.html.erb", "<h1>Welcome <%= name %></h1>"
+        write "welcome_mailer.text.erb", "Welcome <%= name %>"
+      end
+
+      let(:mailer_class) {
+        dir = templates_dir
+        Class.new(Hanami::Mailer) {
+          config.paths = [dir]
+          config.template = "welcome_mailer"
+
+          from "noreply@example.com"
+          to "user@example.com"
+          subject "Welcome"
+
+          expose :name
+        }
+      }
+
+      it "auto-builds view from exposures and config" do
+        expect(mailer.view).not_to be_nil
+        expect(mailer.view).to be_a(Hanami::View)
+      end
+
+      it "renders HTML template" do
+        result = mailer.deliver(name: "Alice")
+
+        expect(result.message.html_body).to include("<h1>Welcome Alice</h1>")
+      end
+
+      it "renders text template" do
+        result = mailer.deliver(name: "Alice")
+
+        expect(result.message.text_body).to include("Welcome Alice")
+      end
+
+      it "passes exposures to view rendering" do
+        result = mailer.deliver(name: "Bob")
+
+        expect(result.message.html_body).to include("Bob")
+        expect(result.message.text_body).to include("Bob")
+      end
+    end
+
+    describe "exposures passed to view" do
+      before do
+        write "order_mailer.html.erb", "<p>Order #<%= order_id %> for <%= customer_name %></p>"
+      end
+
+      let(:mailer_class) {
+        dir = templates_dir
+        Class.new(Hanami::Mailer) {
+          config.paths = [dir]
+          config.template = "order_mailer"
+
+          from "noreply@example.com"
+          to "user@example.com"
+          subject "Order confirmation"
+
+          expose :order_id
+          expose :customer_name do |customer:|
+            customer[:name]
+          end
+        }
+      }
+
+      it "passes all exposures to view" do
+        result = mailer.deliver(order_id: 12_345, customer: {name: "Bob"})
+
+        expect(result.message.html_body).to include("Order #12345")
+        expect(result.message.html_body).to include("Bob")
+      end
+
+      it "evaluates computed exposures before passing to view" do
+        result = mailer.deliver(order_id: 99_999, customer: {name: "Charlie"})
+
+        expect(result.message.html_body).to include("Charlie")
+      end
+    end
+
+    describe "template inference" do
+      before do
+        write "mailers/notification_mailer.html.erb", "<p>Notification content</p>"
+      end
+
+      let(:mailer_class) {
+        dir = templates_dir
+        klass = Class.new(Hanami::Mailer) {
+          config.paths = [dir]
+
+          from "noreply@example.com"
+          to "user@example.com"
+          subject "Notification"
+
+          expose :message
+        }
+
+        stub_const("Mailers::NotificationMailer", klass)
+        klass
+      }
+
+      it "infers template from class name" do
+        result = mailer.deliver(message: "Hello")
+
+        expect(result.message.html_body).to include("Notification content")
+      end
+    end
+
+    describe "without templates for a format" do
+      before do
+        write "html_only_mailer.html.erb", "<p>HTML only</p>"
+      end
+
+      let(:mailer_class) {
+        dir = templates_dir
+        Class.new(Hanami::Mailer) {
+          config.paths = [dir]
+          config.template = "html_only_mailer"
+
+          from "noreply@example.com"
+          to "user@example.com"
+          subject "HTML only"
+
+          expose :data
+        }
+      }
+
+      it "returns nil for missing format template" do
+        result = mailer.deliver(data: "test")
+
+        expect(result.message.html_body).to include("HTML only")
+        expect(result.message.text_body).to be_nil
+      end
+    end
+
+    describe "inheritance of view configuration" do
+      before do
+        write "child_mailer.html.erb", "<p>Child template</p>"
+      end
+
+      let(:parent_class) {
+        dir = templates_dir
+        Class.new(Hanami::Mailer) {
+          config.paths = [dir]
+
+          from "parent@example.com"
+
+          expose :shared_data
+        }
+      }
+
+      let(:child_class) {
+        Class.new(parent_class) {
+          config.template = "child_mailer"
+
+          to "user@example.com"
+          subject "Child email"
+
+          expose :child_data
+        }
+      }
+
+      it "inherits parent paths config" do
+        expect(child_class.config.paths).to eq(parent_class.config.paths)
+      end
+
+      it "renders using inherited paths" do
+        result = child_class.new.deliver(shared_data: "shared", child_data: "child")
+
+        expect(result.message.html_body).to include("Child template")
+      end
+    end
+
+    describe "explicit view injection overrides auto-building" do
+      let(:custom_view) {
+        Class.new {
+          def call(format:, **)
+            "Custom view output"
+          end
+        }.new
+      }
+
+      let(:mailer_class) {
+        dir = templates_dir
+        Class.new(Hanami::Mailer) {
+          config.paths = [dir]
+          config.template = "unused"
+
+          from "noreply@example.com"
+          to "user@example.com"
+          subject "Injected view"
+
+          expose :name
+        }
+      }
+
+      it "uses injected view instead of auto-building" do
+        result = mailer_class.new(view: custom_view).deliver(name: "Test")
+
+        expect(result.message.html_body).to eq("Custom view output")
+      end
+    end
+  end
+
+  describe "with integrate_view disabled" do
+    let(:mailer_class) {
+      Class.new(Hanami::Mailer) {
+        config.integrate_view = false
+
+        from "noreply@example.com"
+        to "user@example.com"
+        subject "Test email"
+
+        expose :name
+      }
+    }
+
+    it "delivers successfully with no view built" do
+      result = mailer.deliver(name: "Alice")
+
+      expect(mailer.view).to be_nil
+      expect(result.success?).to be true
+      expect(result.message.html_body).to be_nil
+      expect(result.message.text_body).to be_nil
+    end
+
+    it "still allows injecting a custom view" do
+      custom_view = Class.new {
+        def call(format:, **input)
+          "Hello #{input[:name]}"
+        end
+      }.new
+
+      result = mailer_class.new(view: custom_view).deliver(name: "Bob")
+
+      expect(result.message.html_body).to eq("Hello Bob")
+    end
+
+    it "inherits the disabled setting to subclasses" do
+      child_class = Class.new(mailer_class) { subject "Child" }
+
+      expect(child_class.new.view).to be_nil
+    end
+  end
+
+  describe "without view config" do
+    let(:mailer_class) {
+      Class.new(Hanami::Mailer) {
+        from "noreply@example.com"
+        to "user@example.com"
+        subject "No view email"
+      }
+    }
+
+    it "does not auto-build a view" do
+      expect(mailer.view).to be_nil
+    end
+
+    it "delivers with nil body" do
+      result = mailer.deliver
+
+      expect(result.success?).to be true
+      expect(result.message.html_body).to be_nil
+      expect(result.message.text_body).to be_nil
+    end
+  end
+
+  describe "with injected view" do
+    let(:mailer) { mailer_class.new(view:) }
+
+    let(:view) {
+      Class.new {
+        def call(format:, **input)
+          case format
+          when :html then "<h1>Hello, #{input[:name]}!</h1>"
+          when :text then "Hello, #{input[:name]}!"
+          end
+        end
+      }.new
+    }
+
+    let(:mailer_class) {
+      Class.new(Hanami::Mailer) {
+        from "noreply@example.com"
+        to "user@example.com"
+        subject "Custom view email"
+
+        expose :name
+      }
+    }
+
+    it "uses injected view for rendering" do
+      result = mailer.deliver(name: "Alice")
+
+      expect(result.message.html_body).to eq("<h1>Hello, Alice!</h1>")
+      expect(result.message.text_body).to eq("Hello, Alice!")
+    end
+  end
+
+  describe "view rendering raises TemplateNotFoundError" do
+    let(:mailer) { mailer_class.new(view:) }
+
+    let(:mailer_class) {
+      Class.new(Hanami::Mailer) {
+        from "noreply@example.com"
+        to "user@example.com"
+        subject "Partial template email"
+      }
+    }
+
+    describe "error for one format only" do
+      let(:view) {
+        Class.new {
+          def call(format:, **)
+            raise Hanami::View::TemplateNotFoundError.new("mailer", format, []) if format == :text
+
+            "<p>HTML works</p>"
+          end
+        }.new
+      }
+
+      it "renders a nil body for the failing format and does not raise" do
+        result = mailer.deliver
+
+        expect(result.message.html_body).to eq("<p>HTML works</p>")
+        expect(result.message.text_body).to be_nil
+      end
+    end
+
+    describe "error for both formats" do
+      let(:view) {
+        Class.new {
+          def call(format:, **)
+            raise Hanami::View::TemplateNotFoundError.new("mailer", format, [])
+          end
+        }.new
+      }
+
+      it "raises the first error" do
+        expect { mailer.deliver }.to raise_error(Hanami::View::TemplateNotFoundError)
+      end
+    end
+  end
+
+  describe "preparing message" do
+    let(:simple_view) {
+      Class.new {
+        def call(format:, **)
+          case format
+          when :html then "<p>Test</p>"
+          when :text then "Test"
+          end
+        end
+      }.new
+    }
+
+    let(:mailer_class) {
+      Class.new(Hanami::Mailer) {
+        from "noreply@example.com"
+        to "user@example.com"
+        subject "Test"
+      }
+    }
+
+    it "renders view when preparing message" do
+      message = mailer_class.new(view: simple_view).prepare
+
+      expect(message).to be_a(Hanami::Mailer::Message)
+      expect(message.html_body).to eq("<p>Test</p>")
+      expect(message.text_body).to eq("Test")
+    end
+  end
+end
