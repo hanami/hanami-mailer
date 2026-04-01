@@ -1,4 +1,14 @@
-# Hanami::Mailer
+<!--- This file is synced from hanakai-rb/repo-sync -->
+
+[actions]: https://github.com/hanami/hanami-mailer/actions
+[chat]: https://discord.gg/naQApPAsZB
+[forum]: https://discourse.hanamirb.org
+[rubygem]: https://rubygems.org/gems/hanami-mailer
+
+# hanami-mailer [![Gem Version](https://badge.fury.io/rb/hanami-mailer.svg)][rubygem] [![CI Status](https://github.com/hanami/hanami-mailer/workflows/CI/badge.svg)][actions]
+
+[![Forum](https://img.shields.io/badge/Forum-dc360f?logo=discourse&logoColor=white)][forum]
+[![Chat](https://img.shields.io/badge/Chat-717cf8?logo=discord&logoColor=white)][chat]
 
 Email delivery for Hanami applications and Ruby projects.
 
@@ -592,14 +602,13 @@ RSpec.describe WelcomeMailer do
 end
 ```
 
-## Contributing
+## Links
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/hanami/mailer.
+- [User documentation](https://hanamirb.org)
+- [API documentation](http://rubydoc.info/gems/hanami-mailer)
+
 
 ## License
 
-The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+See `LICENSE` file.
 
-## Code of Conduct
-
-Everyone interacting in the Hanami::Mailer project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/hanami/mailer/blob/main/CODE_OF_CONDUCT.md).

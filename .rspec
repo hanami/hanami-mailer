@@ -1,3 +1,4 @@
 --color
 --require spec_helper
---exclude-pattern spec/isolation/**/*_spec.rb
+--order random
+--warnings

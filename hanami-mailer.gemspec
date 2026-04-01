@@ -1,33 +1,38 @@
 # frozen_string_literal: true
 
-lib = File.expand_path("../lib", __FILE__)
+# This file is synced from hanakai-rb/repo-sync. To update it, edit repo-sync.yml.
+
+lib = File.expand_path("lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "hanami/mailer/version"
 
 Gem::Specification.new do |spec|
   spec.name          = "hanami-mailer"
-  spec.version       = Hanami::Mailer::VERSION
-  spec.authors       = ["Luca Guidi"]
-  spec.email         = ["me@lucaguidi.com"]
-
-  spec.summary       = "Mail for Ruby applications."
-  spec.description   = "Mail for Ruby applications and Hanami mailers"
-  spec.homepage      = "http://hanamirb.org"
+  spec.authors       = ["Hanakai team"]
+  spec.email         = ["info@hanakai.org"]
   spec.license       = "MIT"
+  spec.version       = Hanami::Mailer::VERSION.dup
 
-  spec.files         = `git ls-files -- lib/* CHANGELOG.md LICENSE.md README.md hanami-mailer.gemspec`.split($/)
+  spec.summary       = "Email delivery for Hanami applications and Ruby projects."
+  spec.description   = spec.summary
+  spec.homepage      = "https://hanamirb.org"
+  spec.files         = Dir["CHANGELOG.md", "LICENSE", "README.md", "hanami-mailer.gemspec", "lib/**/*"]
   spec.bindir        = "exe"
-  spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
+  spec.executables   = Dir["exe/*"].map { |f| File.basename(f) }
   spec.require_paths = ["lib"]
-  spec.metadata["rubygems_mfa_required"] = "true"
-  spec.required_ruby_version = ">= 3.0"
 
-  spec.add_dependency "dry-configurable", "~> 1.0"
-  spec.add_dependency "mail", "~> 2.7"
-  spec.add_dependency "zeitwerk"
+  spec.extra_rdoc_files = ["README.md", "CHANGELOG.md", "LICENSE"]
 
-  # FIXME: remove when https://github.com/mikel/mail/pull/1439 gets merged AND a new version of `mail` gets released
-  spec.add_dependency "net-smtp", "~> 0.3"
-  spec.add_dependency "net-pop",  "~> 0.1"
-  spec.add_dependency "net-imap", "~> 0.2"
+  spec.metadata["allowed_push_host"] = "https://rubygems.org"
+  spec.metadata["changelog_uri"]     = "https://github.com/hanami/hanami-mailer/blob/main/CHANGELOG.md"
+  spec.metadata["source_code_uri"]   = "https://github.com/hanami/hanami-mailer"
+  spec.metadata["bug_tracker_uri"]   = "https://github.com/hanami/hanami-mailer/issues"
+  spec.metadata["funding_uri"]       = "https://github.com/sponsors/hanami"
+
+  spec.required_ruby_version = ">= 3.1.0"
+
+  spec.add_runtime_dependency "dry-configurable", "~> 1.0"
+  spec.add_runtime_dependency "mail", "~> 2.7"
+  spec.add_runtime_dependency "zeitwerk"
 end
+
