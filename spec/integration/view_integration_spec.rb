@@ -63,6 +63,30 @@ RSpec.describe "View integration" do
         expect(result.message.html_body).to include("Bob")
         expect(result.message.text_body).to include("Bob")
       end
+
+      it "builds the default view once per class and shares it across instances" do
+        expect(mailer_class.new.view).to be(mailer_class.new.view)
+      end
+
+      it "memoizes the default view on the class" do
+        expect(mailer_class.default_view).to be(mailer_class.default_view)
+        expect(mailer.view).to be(mailer_class.default_view)
+      end
+
+      it "builds a distinct default view per subclass" do
+        child_class = Class.new(mailer_class) { subject "Child" }
+
+        expect(child_class.default_view).not_to be(mailer_class.default_view)
+      end
+
+      it "lets a per-instance view: override win without using the class default" do
+        custom_view = Object.new
+
+        instance = mailer_class.new(view: custom_view)
+
+        expect(instance.view).to be(custom_view)
+        expect(instance.view).not_to be(mailer_class.default_view)
+      end
     end
 
     describe "exposures passed to view" do

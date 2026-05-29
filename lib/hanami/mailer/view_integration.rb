@@ -13,6 +13,9 @@ module Hanami
           # Prepend the initializer module to wrap initialization
           prepend PrependedMethods
 
+          # Add class-level methods, including the lazily-built, memoized default view
+          extend ClassMethods
+
           # Whether to automatically build views from exposures
           # Set to false to disable automatic view integration behavior
           setting :integrate_view, default: true
@@ -40,15 +43,38 @@ module Hanami
         end
       end
 
-      # Internal module for prepending initialize and render behavior.
+      # Class-level methods added to mailer classes when Hanami::View is available.
+      #
+      # @api private
+      module ClassMethods
+        # The auto-built default view for this mailer class.
+        #
+        # Built lazily on first access (the first render) and memoized, since it depends only on
+        # class-level state (config, exposures, class name) and is identical for every instance.
+        # Returns nil when view integration is disabled or no usable template paths are configured.
+        #
+        # Note: because the view is memoized on first render, later changes to view-related
+        # config or exposures are not reflected. Mailer classes are configured once at definition
+        # time, so this is intentional.
+        #
+        # @api private
+        def default_view
+          return @default_view if defined?(@default_view)
+
+          @default_view = config.integrate_view ? DefaultViewBuilder.call(self) : nil
+        end
+      end
+
+      # Internal module for prepending view and render behavior.
       # Wraps the base class to provide automatic view building and
       # per-format template error handling.
       #
       # @api private
       module PrependedMethods
-        def initialize(view: nil, **)
-          view ||= DefaultViewBuilder.call(self) if self.class.config.integrate_view
-          super
+        # The view used for rendering: a per-instance override passed to the constructor, falling
+        # back to the mailer class's lazily-built, memoized default view.
+        def view
+          @view || self.class.default_view
         end
 
         # Renders HTML and text bodies, handling missing templates per format.
@@ -78,25 +104,25 @@ module Hanami
       class DefaultViewBuilder
         class << self
           # Builds a default view from exposures if Hanami::View is available.
-          def call(mailer)
-            view_class = mailer.class.config.view_class || Hanami::View
+          def call(mailer_class)
+            view_class = mailer_class.config.view_class || Hanami::View
 
             # A view needs paths to find its templates. These may be configured on the mailer, or
             # inherited from an already-configured `view_class` (e.g. within a Hanami app).
-            paths = mailer.class.config.paths
+            paths = mailer_class.config.paths
             if (paths.nil? || paths.empty?) && view_class.respond_to?(:config)
               paths = view_class.config.paths
             end
             return nil if paths.nil? || paths.empty?
 
-            template = mailer.class.config.template
-            template ||= inferred_template(mailer)
+            template = mailer_class.config.template
+            template ||= inferred_template(mailer_class)
 
             build_view_class(
               view_class: view_class,
               template: template,
-              exposures: mailer.class.exposures,
-              config: mailer.class.config
+              exposures: mailer_class.exposures,
+              config: mailer_class.config
             )
           end
 
@@ -106,10 +132,10 @@ module Hanami
           #
           # @example
           #   Mailers::WelcomeMailer -> "mailers/welcome_mailer"
-          def inferred_template(mailer)
-            return nil unless mailer.class.name
+          def inferred_template(mailer_class)
+            return nil unless mailer_class.name
 
-            mailer.class.name
+            mailer_class.name
               .gsub("::", "/")
               .gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
               .gsub(/([a-z\d])([A-Z])/, '\1_\2')
