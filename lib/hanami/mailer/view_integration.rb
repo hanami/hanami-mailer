@@ -17,6 +17,12 @@ module Hanami
           # Set to false to disable automatic view integration behavior
           setting :integrate_view, default: true
 
+          # The base class used when building the mailer's view. Defaults to Hanami::View, but
+          # may be set to an already-configured view class (such as a view class within a Hanami
+          # app), in which case the built view inherits that class's configuration — context,
+          # parts, scopes, paths, helpers and so on.
+          setting :view_class, default: Hanami::View
+
           # Copy all settings from Hanami::View to support default view integration.
           # This allows mailers to configure view-related settings (like layouts_dir,
           # default_format, inflector, etc.) without having to manually redefine them.
@@ -73,13 +79,21 @@ module Hanami
         class << self
           # Builds a default view from exposures if Hanami::View is available.
           def call(mailer)
-            return nil if mailer.class.exposures.empty? && mailer.class.config.paths.empty?
+            view_class = mailer.class.config.view_class || Hanami::View
+
+            # A view needs paths to find its templates. These may be configured on the mailer, or
+            # inherited from an already-configured `view_class` (e.g. within a Hanami app).
+            paths = mailer.class.config.paths
+            if (paths.nil? || paths.empty?) && view_class.respond_to?(:config)
+              paths = view_class.config.paths
+            end
+            return nil if paths.nil? || paths.empty?
 
             template = mailer.class.config.template
             template ||= inferred_template(mailer)
 
             build_view_class(
-              paths: mailer.class.config.paths,
+              view_class: view_class,
               template: template,
               exposures: mailer.class.exposures,
               config: mailer.class.config
@@ -104,34 +118,35 @@ module Hanami
 
           # rubocop:disable Metrics/AbcSize, Metrics/PerceivedComplexity
 
-          # Builds a Hanami::View instance from mailer configuration.
-          def build_view_class(paths:, template:, exposures:, config:)
-            view_paths = paths
+          # Builds a Hanami::View instance from the mailer's configuration.
+          #
+          # The view is a subclass of the mailer's configured `view_class`, so it inherits that
+          # class's configuration. Only view settings the mailer has *explicitly* configured are
+          # applied as overrides, leaving an already-configured base class (such as a Hanami app's
+          # view) to provide its context, parts, scopes and helpers by inheritance. A standalone
+          # mailer (whose `view_class` is the unconfigured `Hanami::View`) still drives its own
+          # view via these overrides.
+          def build_view_class(view_class:, template:, exposures:, config:)
             view_template = template
             view_exposures = exposures
             mailer_config = config
 
-            # paths is required by Hanami::View - return nil if not configured
-            return nil if view_paths.nil? || view_paths.empty?
-
-            # View settings we configure explicitly below — don't overwrite them
-            explicitly_configured = %i[paths template layout]
-
-            view_class = Class.new(Hanami::View) do
-              self.config.paths = view_paths
-              self.config.template = view_template
-              self.config.layout = false
-
-              # Copy remaining view settings from mailer config
+            built = Class.new(view_class) do
               Hanami::View.config._settings.each do |setting_def|
-                next if explicitly_configured.include?(setting_def.name)
-                next unless mailer_config.respond_to?(setting_def.name)
+                name = setting_def.name
 
-                self.config.public_send(
-                  :"#{setting_def.name}=",
-                  mailer_config.public_send(setting_def.name)
-                )
+                # `template` and `layout` are handled explicitly below.
+                next if name == :template || name == :layout
+                next unless mailer_config.respond_to?(name)
+                next unless mailer_config.configured?(name)
+
+                self.config.public_send(:"#{name}=", mailer_config.public_send(name))
               end
+
+              # Mailers do not use a layout by default, but one may be configured.
+              self.config.layout = mailer_config.configured?(:layout) ? mailer_config.layout : false
+
+              self.config.template = view_template if view_template
 
               view_exposures.each do |name, exposure|
                 if exposure.proc
@@ -142,7 +157,7 @@ module Hanami
               end
             end
 
-            view_class.new
+            built.new
           end
           # rubocop:enable Metrics/AbcSize, Metrics/PerceivedComplexity
         end
