@@ -64,8 +64,8 @@ RSpec.describe "Delivery results" do
       user = {name: "Bob", email: "bob@example.com"}
       mailer.deliver(user: user)
 
-      expect(Hanami::Mailer::Delivery::Test.deliveries.size).to eq(1)
-      result = Hanami::Mailer::Delivery::Test.deliveries.first
+      expect(mailer.delivery_method.deliveries.size).to eq(1)
+      result = mailer.delivery_method.deliveries.first
       expect(result).to be_a(Hanami::Mailer::Delivery::Result)
       expect(result.message.to).to eq(["bob@example.com"])
     end
@@ -82,7 +82,7 @@ RSpec.describe "Delivery results" do
       mailer.deliver(user: {name: "Bob", email: "bob@example.com"})
       mailer.deliver(user: {name: "Charlie", email: "charlie@example.com"})
 
-      messages = Hanami::Mailer::Delivery::Test.deliveries.map(&:message)
+      messages = mailer.delivery_method.deliveries.map(&:message)
       expect(messages.map { |m| m.to.first }).to eq([
         "alice@example.com",
         "bob@example.com",
