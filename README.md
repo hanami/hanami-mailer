@@ -51,7 +51,7 @@ mailer.deliver
 <h1>Welcome to our app!</h1>
 ```
 
-`app/templates/mailers/welcome.txt.erb`:
+`app/templates/mailers/welcome.text.erb`:
 
 ```erb
 Welcome to our app!
@@ -84,7 +84,7 @@ mailer.deliver(user: {name: "Alice", email: "alice@example.com"})
 <h1>Hello, <%= user[:name] %>!</h1>
 ```
 
-`app/templates/mailers/user_mailer.txt.erb`:
+`app/templates/mailers/user_mailer.text.erb`:
 
 ```erb
 Hello, <%= user[:name] %>!
@@ -609,4 +609,3 @@ end
 ## License
 
 See `LICENSE` file.
-
