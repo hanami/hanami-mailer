@@ -7,22 +7,20 @@ module Hanami
       #
       # @api public
       class Test
-        class << self
-          # Returns all delivery results
-          #
-          # @return [Array<Delivery::Result>]
-          #
-          # @api public
-          def deliveries
-            @deliveries ||= []
-          end
+        # Returns all delivery results
+        #
+        # @return [Array<Delivery::Result>]
+        #
+        # @api public
+        def deliveries
+          @deliveries ||= []
+        end
 
-          # Clear all delivery results
-          #
-          # @api public
-          def clear
-            deliveries.clear
-          end
+        # Clear all delivery results
+        #
+        # @api public
+        def clear
+          deliveries.clear
         end
 
         # Deliver a message by storing a result in memory
@@ -33,7 +31,7 @@ module Hanami
         # @api private
         def call(message)
           result = Result.new(message: message)
-          self.class.deliveries << result
+          deliveries << result
           result
         end
 

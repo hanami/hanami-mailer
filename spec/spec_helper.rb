@@ -25,9 +25,4 @@ RSpec.configure do |config|
 
   config.order = :random
   Kernel.srand config.seed
-
-  # Clear test deliveries before each example
-  config.before do
-    Hanami::Mailer::Delivery::Test.clear
-  end
 end

@@ -4,29 +4,27 @@ RSpec.describe Hanami::Mailer::Delivery::Test do
   let(:message) { minimal_message }
   let(:delivery) { described_class.new }
 
-  describe ".deliveries" do
+  describe "#deliveries" do
     it "is empty after clear" do
-      described_class.clear
+      delivery.clear
 
-      expect(described_class.deliveries).to be_empty
+      expect(delivery.deliveries).to be_empty
     end
 
     it "accumulates results across multiple calls" do
-      described_class.clear
-
       delivery.call(message)
       delivery.call(message)
 
-      expect(described_class.deliveries.size).to eq(2)
+      expect(delivery.deliveries.size).to eq(2)
     end
   end
 
-  describe ".clear" do
+  describe "#clear" do
     it "empties the deliveries collection" do
       delivery.call(message)
-      described_class.clear
+      delivery.clear
 
-      expect(described_class.deliveries).to be_empty
+      expect(delivery.deliveries).to be_empty
     end
   end
 
@@ -56,10 +54,10 @@ RSpec.describe Hanami::Mailer::Delivery::Test do
       expect(result.error).to be_nil
     end
 
-    it "stores the result in the class-level deliveries" do
+    it "stores the result in the instance-level deliveries" do
       result = delivery.call(message)
 
-      expect(described_class.deliveries).to include(result)
+      expect(delivery.deliveries).to include(result)
     end
   end
 

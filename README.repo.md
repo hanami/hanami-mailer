@@ -355,10 +355,10 @@ result = mailer.deliver(user: user)
 result.success?       # => true
 result.message        # => the Hanami::Mailer::Message that was delivered
 
-# Inspect all deliveries
-Hanami::Mailer::Delivery::Test.deliveries       # => [result, ...]
-Hanami::Mailer::Delivery::Test.deliveries.size   # => 1
-Hanami::Mailer::Delivery::Test.clear             # reset between tests
+# Inspect all deliveries via the mailer's delivery method instance
+mailer.delivery_method.deliveries       # => [result, ...]
+mailer.delivery_method.deliveries.size  # => 1
+mailer.delivery_method.clear            # reset between tests
 ```
 
 #### SMTP delivery
@@ -554,8 +554,6 @@ end
 
 ```ruby
 RSpec.describe OrderConfirmationMailer do
-  before { Hanami::Mailer::Delivery::Test.clear }
-
   it "sends confirmation email" do
     mailer = OrderConfirmationMailer.new
     result = mailer.deliver(order: {id: 123}, customer: {email: "test@example.com"})
@@ -565,8 +563,8 @@ RSpec.describe OrderConfirmationMailer do
     expect(result.message.to).to include("test@example.com")
     expect(result.message.subject).to include("123")
 
-    # Or inspect all deliveries
-    expect(Hanami::Mailer::Delivery::Test.deliveries.size).to eq(1)
+    # Or inspect all deliveries via the mailer's delivery method instance
+    expect(mailer.delivery_method.deliveries.size).to eq(1)
   end
 end
 ```
@@ -585,7 +583,7 @@ RSpec.describe WelcomeMailer do
     expect(message.html_body).to include("Hello")
 
     # No email was delivered
-    expect(Hanami::Mailer::Delivery::Test.deliveries).to be_empty
+    expect(mailer.delivery_method.deliveries).to be_empty
   end
 end
 ```
