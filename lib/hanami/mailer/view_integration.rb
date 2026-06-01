@@ -13,9 +13,18 @@ module Hanami
           # Prepend the initializer module to wrap initialization
           prepend PrependedMethods
 
+          # Add class-level methods, including the lazily-built, memoized default view
+          extend ClassMethods
+
           # Whether to automatically build views from exposures
           # Set to false to disable automatic view integration behavior
           setting :integrate_view, default: true
+
+          # The base class used when building the mailer's view. Defaults to Hanami::View, but
+          # may be set to an already-configured view class (such as a view class within a Hanami
+          # app), in which case the built view inherits that class's configuration — context,
+          # parts, scopes, paths, helpers and so on.
+          setting :view_class, default: Hanami::View
 
           # Copy all settings from Hanami::View to support default view integration.
           # This allows mailers to configure view-related settings (like layouts_dir,
@@ -34,15 +43,38 @@ module Hanami
         end
       end
 
-      # Internal module for prepending initialize and render behavior.
+      # Class-level methods added to mailer classes when Hanami::View is available.
+      #
+      # @api private
+      module ClassMethods
+        # The auto-built default view for this mailer class.
+        #
+        # Built lazily on first access (the first render) and memoized, since it depends only on
+        # class-level state (config, exposures, class name) and is identical for every instance.
+        # Returns nil when view integration is disabled or no usable template paths are configured.
+        #
+        # Note: because the view is memoized on first render, later changes to view-related
+        # config or exposures are not reflected. Mailer classes are configured once at definition
+        # time, so this is intentional.
+        #
+        # @api private
+        def default_view
+          return @default_view if defined?(@default_view)
+
+          @default_view = config.integrate_view ? DefaultViewBuilder.call(self) : nil
+        end
+      end
+
+      # Internal module for prepending view and render behavior.
       # Wraps the base class to provide automatic view building and
       # per-format template error handling.
       #
       # @api private
       module PrependedMethods
-        def initialize(view: nil, **)
-          view ||= DefaultViewBuilder.call(self) if self.class.config.integrate_view
-          super
+        # The view used for rendering: a per-instance override passed to the constructor, falling
+        # back to the mailer class's lazily-built, memoized default view.
+        def view
+          @view || self.class.default_view
         end
 
         # Renders HTML and text bodies, handling missing templates per format.
@@ -72,17 +104,25 @@ module Hanami
       class DefaultViewBuilder
         class << self
           # Builds a default view from exposures if Hanami::View is available.
-          def call(mailer)
-            return nil if mailer.class.exposures.empty? && mailer.class.config.paths.empty?
+          def call(mailer_class)
+            view_class = mailer_class.config.view_class || Hanami::View
 
-            template = mailer.class.config.template
-            template ||= inferred_template(mailer)
+            # A view needs paths to find its templates. These may be configured on the mailer, or
+            # inherited from an already-configured `view_class` (e.g. within a Hanami app).
+            paths = mailer_class.config.paths
+            if (paths.nil? || paths.empty?) && view_class.respond_to?(:config)
+              paths = view_class.config.paths
+            end
+            return nil if paths.nil? || paths.empty?
+
+            template = mailer_class.config.template
+            template ||= inferred_template(mailer_class)
 
             build_view_class(
-              paths: mailer.class.config.paths,
+              view_class: view_class,
               template: template,
-              exposures: mailer.class.exposures,
-              config: mailer.class.config
+              exposures: mailer_class.exposures,
+              config: mailer_class.config
             )
           end
 
@@ -92,10 +132,10 @@ module Hanami
           #
           # @example
           #   Mailers::WelcomeMailer -> "mailers/welcome_mailer"
-          def inferred_template(mailer)
-            return nil unless mailer.class.name
+          def inferred_template(mailer_class)
+            return nil unless mailer_class.name
 
-            mailer.class.name
+            mailer_class.name
               .gsub("::", "/")
               .gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
               .gsub(/([a-z\d])([A-Z])/, '\1_\2')
@@ -104,34 +144,35 @@ module Hanami
 
           # rubocop:disable Metrics/AbcSize, Metrics/PerceivedComplexity
 
-          # Builds a Hanami::View instance from mailer configuration.
-          def build_view_class(paths:, template:, exposures:, config:)
-            view_paths = paths
+          # Builds a Hanami::View instance from the mailer's configuration.
+          #
+          # The view is a subclass of the mailer's configured `view_class`, so it inherits that
+          # class's configuration. Only view settings the mailer has *explicitly* configured are
+          # applied as overrides, leaving an already-configured base class (such as a Hanami app's
+          # view) to provide its context, parts, scopes and helpers by inheritance. A standalone
+          # mailer (whose `view_class` is the unconfigured `Hanami::View`) still drives its own
+          # view via these overrides.
+          def build_view_class(view_class:, template:, exposures:, config:)
             view_template = template
             view_exposures = exposures
             mailer_config = config
 
-            # paths is required by Hanami::View - return nil if not configured
-            return nil if view_paths.nil? || view_paths.empty?
-
-            # View settings we configure explicitly below — don't overwrite them
-            explicitly_configured = %i[paths template layout]
-
-            view_class = Class.new(Hanami::View) do
-              self.config.paths = view_paths
-              self.config.template = view_template
-              self.config.layout = false
-
-              # Copy remaining view settings from mailer config
+            built = Class.new(view_class) do
               Hanami::View.config._settings.each do |setting_def|
-                next if explicitly_configured.include?(setting_def.name)
-                next unless mailer_config.respond_to?(setting_def.name)
+                name = setting_def.name
 
-                self.config.public_send(
-                  :"#{setting_def.name}=",
-                  mailer_config.public_send(setting_def.name)
-                )
+                # `template` and `layout` are handled explicitly below.
+                next if name == :template || name == :layout
+                next unless mailer_config.respond_to?(name)
+                next unless mailer_config.configured?(name)
+
+                self.config.public_send(:"#{name}=", mailer_config.public_send(name))
               end
+
+              # Mailers do not use a layout by default, but one may be configured.
+              self.config.layout = mailer_config.configured?(:layout) ? mailer_config.layout : false
+
+              self.config.template = view_template if view_template
 
               view_exposures.each do |name, exposure|
                 if exposure.proc
@@ -142,7 +183,7 @@ module Hanami
               end
             end
 
-            view_class.new
+            built.new
           end
           # rubocop:enable Metrics/AbcSize, Metrics/PerceivedComplexity
         end
