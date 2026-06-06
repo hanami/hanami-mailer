@@ -58,7 +58,6 @@ module Hanami
           mail
         end
 
-        # Build a Mail::Message with addresses, subject, charset and custom headers
         def build_mail(message)
           # Use local variables to avoid shadowing Mail DSL methods
           from_addr = message.from
@@ -66,26 +65,23 @@ module Hanami
           cc_addr = message.cc
           bcc_addr = message.bcc
           reply_to_addr = message.reply_to
+          return_path_addr = message.return_path
           subject_text = message.subject
+          charset_value = message.charset
 
-          mail = Mail.new do
+          Mail.new do
             from from_addr
             to to_addr if to_addr
             cc cc_addr if cc_addr
             bcc bcc_addr if bcc_addr
             reply_to reply_to_addr if reply_to_addr
+            return_path return_path_addr if return_path_addr
             subject subject_text
+            self.charset = charset_value
+            message.headers.each { |key, value| self[key] = value }
           end
-
-          # return_path is not part of the Mail DSL block
-          mail.return_path = message.return_path if message.return_path
-          mail.charset = message.charset
-          message.headers.each { |key, value| mail[key] = value }
-
-          mail
         end
 
-        # Set the body content on the mail
         def assign_body(mail, message)
           return assign_single_body(mail, message) unless message.html_body && message.text_body
 
@@ -102,7 +98,6 @@ module Hanami
           end
         end
 
-        # Set a single (text-only or html-only) body inline on the mail
         def assign_single_body(mail, message)
           if message.html_body
             mail.content_type "text/html; charset=#{message.charset}"
@@ -113,7 +108,6 @@ module Hanami
           end
         end
 
-        # Build a multipart/alternative part wrapping the text and HTML bodies
         def alternative_part(message)
           Mail::Part.new.tap do |part|
             part.content_type "multipart/alternative"
@@ -122,7 +116,6 @@ module Hanami
           end
         end
 
-        # Build a single body part of the given MIME type
         def body_part(mime_type, content, charset)
           Mail::Part.new do
             content_type "#{mime_type}; charset=#{charset}"
@@ -130,7 +123,6 @@ module Hanami
           end
         end
 
-        # Add the message's attachments to the mail
         def add_attachments(mail, message)
           message.attachments.each do |attachment|
             if attachment.inline?
