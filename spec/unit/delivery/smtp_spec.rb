@@ -113,5 +113,138 @@ RSpec.describe Hanami::Mailer::Delivery::SMTP do
         expect(mail.attachments.map(&:filename)).to eq(["invoice.pdf"])
       end
     end
+
+    context "when the message has both bodies and no attachments" do
+      let(:message) do
+        Hanami::Mailer::Message.new(
+          from: "noreply@example.com",
+          to: "user@example.com",
+          subject: "SMTP test",
+          html_body: "<h1>Hi</h1>",
+          text_body: "Hi"
+        )
+      end
+
+      let(:mail) { smtp_delivery.call(message).response }
+
+      it "produces a multipart/alternative with the text and HTML parts" do
+        expect(mail.mime_type).to eq("multipart/alternative")
+        expect(mail.parts.map(&:mime_type)).to contain_exactly("text/plain", "text/html")
+        expect(mail.text_part.decoded).to eq("Hi")
+        expect(mail.html_part.decoded).to eq("<h1>Hi</h1>")
+      end
+    end
+
+    context "when the message has only an HTML body" do
+      let(:message) do
+        Hanami::Mailer::Message.new(
+          from: "noreply@example.com",
+          to: "user@example.com",
+          subject: "SMTP test",
+          html_body: "<h1>Hi</h1>"
+        )
+      end
+
+      let(:mail) { smtp_delivery.call(message).response }
+
+      it "produces a single text/html body" do
+        expect(mail.mime_type).to eq("text/html")
+        expect(mail.body.decoded).to eq("<h1>Hi</h1>")
+      end
+    end
+
+    context "when the message has only a text body" do
+      let(:message) do
+        Hanami::Mailer::Message.new(
+          from: "noreply@example.com",
+          to: "user@example.com",
+          subject: "SMTP test",
+          text_body: "Hi"
+        )
+      end
+
+      let(:mail) { smtp_delivery.call(message).response }
+
+      it "produces a single text/plain body" do
+        expect(mail.mime_type).to eq("text/plain")
+        expect(mail.body.decoded).to eq("Hi")
+      end
+    end
+
+    context "when the message has the full set of address fields and headers" do
+      let(:message) do
+        Hanami::Mailer::Message.new(
+          from: "noreply@example.com",
+          to: "user@example.com",
+          cc: "cc@example.com",
+          bcc: "bcc@example.com",
+          reply_to: "reply@example.com",
+          return_path: "bounce@example.com",
+          subject: "SMTP test",
+          text_body: "Hi",
+          headers: {"X-Custom" => "yes"}
+        )
+      end
+
+      let(:mail) { smtp_delivery.call(message).response }
+
+      it "sets every address field on the mail" do
+        expect(mail.cc).to eq(["cc@example.com"])
+        expect(mail.bcc).to eq(["bcc@example.com"])
+        expect(mail.reply_to).to eq(["reply@example.com"])
+        expect(mail.return_path).to eq("bounce@example.com")
+      end
+
+      it "sets custom headers on the mail" do
+        expect(mail["X-Custom"].value).to eq("yes")
+      end
+    end
+
+    context "when the message has no to recipient" do
+      let(:message) do
+        Hanami::Mailer::Message.new(
+          from: "noreply@example.com",
+          bcc: "bcc@example.com",
+          subject: "SMTP test",
+          text_body: "Hi"
+        )
+      end
+
+      let(:mail) { smtp_delivery.call(message).response }
+
+      it "omits the To header and keeps the bcc recipient" do
+        expect(mail.to).to be_nil
+        expect(mail.bcc).to eq(["bcc@example.com"])
+      end
+    end
+
+    context "when the message has an inline attachment" do
+      let(:message) do
+        Hanami::Mailer::Message.new(
+          from: "noreply@example.com",
+          to: "user@example.com",
+          subject: "SMTP test",
+          text_body: "Hi",
+          attachments: [
+            Hanami::Mailer::Attachment.new(
+              filename: "logo.png",
+              content: "fake-png",
+              content_type: "image/png",
+              inline: true
+            )
+          ]
+        )
+      end
+
+      let(:mail) { smtp_delivery.call(message).response }
+
+      it "marks the attachment as inline with a content id" do
+        attachment = mail.attachments.first
+
+        expect(attachment.inline?).to be true
+        expect(attachment.filename).to eq("logo.png")
+        expect(attachment.content_id).not_to be_nil
+      end
+    end
   end
 end
