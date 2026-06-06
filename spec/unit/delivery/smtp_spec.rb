@@ -79,5 +79,39 @@ RSpec.describe Hanami::Mailer::Delivery::SMTP do
         expect(result.error.message).to include("Authentication failed")
       end
     end
+
+    context "when the message has both bodies and an attachment" do
+      let(:message) do
+        Hanami::Mailer::Message.new(
+          from: "noreply@example.com",
+          to: "user@example.com",
+          subject: "SMTP test",
+          html_body: "<h1>Hi</h1>",
+          text_body: "Hi",
+          attachments: [
+            Hanami::Mailer::Attachment.new(
+              filename: "invoice.pdf",
+              content: "%PDF-1.4 fake",
+              content_type: "application/pdf"
+            )
+          ]
+        )
+      end
+
+      let(:mail) { smtp_delivery.call(message).response }
+
+      it "nests the bodies in a multipart/alternative under multipart/mixed" do
+        expect(mail.mime_type).to eq("multipart/mixed")
+
+        alternative = mail.parts.find { |part| part.mime_type == "multipart/alternative" }
+        expect(alternative).not_to be_nil
+        expect(alternative.parts.map(&:mime_type)).to contain_exactly("text/plain", "text/html")
+      end
+
+      it "keeps the attachment as a sibling of the multipart/alternative" do
+        expect(mail.parts.map(&:mime_type)).to contain_exactly("multipart/alternative", "application/pdf")
+        expect(mail.attachments.map(&:filename)).to eq(["invoice.pdf"])
+      end
+    end
   end
 end
