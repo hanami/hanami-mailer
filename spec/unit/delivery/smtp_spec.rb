@@ -108,8 +108,8 @@ RSpec.describe Hanami::Mailer::Delivery::SMTP do
         expect(alternative.parts.map(&:mime_type)).to contain_exactly("text/plain", "text/html")
       end
 
-      it "keeps the attachment as a sibling of the multipart/alternative" do
-        expect(mail.parts.map(&:mime_type)).to contain_exactly("multipart/alternative", "application/pdf")
+      it "orders the bodies before the attachment under multipart/mixed" do
+        expect(mail.parts.map(&:mime_type)).to eq(["multipart/alternative", "application/pdf"])
         expect(mail.attachments.map(&:filename)).to eq(["invoice.pdf"])
       end
     end
