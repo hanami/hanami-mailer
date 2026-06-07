@@ -57,14 +57,21 @@ module Hanami
 
         # @param message [Hanami::Mailer::Message] the prepared message
         # @param response [Object, nil] the raw response from the delivery method
-        # @param success [Boolean] whether delivery succeeded (default: true)
+        # @param success [Boolean, nil] whether delivery succeeded. Optional; when given it
+        #   must be consistent with +error+ (true only when +error+ is nil). When omitted,
+        #   success is derived from the presence of +error+.
         # @param error [Exception, nil] the exception raised, if delivery failed
         #
+        # @raise [ArgumentError] if +success+ contradicts the presence of +error+
+        #
         # @api private
-        def initialize(message:, response: nil, success: true, error: nil)
+        def initialize(message:, response: nil, success: nil, error: nil)
+          if !success.nil? && success != error.nil?
+            raise ArgumentError, "success: #{success.inspect} is inconsistent with error: #{error.inspect}"
+          end
+
           @message  = message
           @response = response
-          @success  = success
           @error    = error
         end
 
@@ -74,7 +81,16 @@ module Hanami
         #
         # @api public
         def success?
-          @success
+          error.nil?
+        end
+
+        # Returns true if delivery failed.
+        #
+        # @return [Boolean]
+        #
+        # @api public
+        def failure?
+          !success?
         end
       end
     end
