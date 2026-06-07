@@ -584,3 +584,4 @@ If Hanami View is installed but you don't want mailers building a view from it a
 ## License
 
 See `LICENSE` file.
+
