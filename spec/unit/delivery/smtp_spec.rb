@@ -218,6 +218,41 @@ RSpec.describe Hanami::Mailer::Delivery::SMTP do
       end
     end
 
+    context "when the message has a single body and an attachment" do
+      let(:message) do
+        Hanami::Mailer::Message.new(
+          from: "noreply@example.com",
+          to: "user@example.com",
+          subject: "SMTP test",
+          text_body: "Hi",
+          attachments: [
+            Hanami::Mailer::Attachment.new(
+              filename: "invoice.pdf",
+              content: "%PDF-1.4 fake",
+              content_type: "application/pdf"
+            )
+          ]
+        )
+      end
+
+      let(:mail) { smtp_delivery.call(message).response }
+
+      it "attaches the file as a non-inline sibling of the body" do
+        expect(mail.mime_type).to eq("multipart/mixed")
+
+        attachment = mail.attachments.first
+        expect(attachment.inline?).to be false
+        expect(attachment.filename).to eq("invoice.pdf")
+      end
+
+      it "preserves the text body alongside the attachment" do
+        text = mail.parts.find { |part| part.mime_type == "text/plain" }
+
+        expect(text).not_to be_nil
+        expect(text.decoded).to eq("Hi")
+      end
+    end
+
     context "when the message has an inline attachment" do
       let(:message) do
         Hanami::Mailer::Message.new(

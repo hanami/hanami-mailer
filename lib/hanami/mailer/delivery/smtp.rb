@@ -83,8 +83,19 @@ module Hanami
         end
 
         def assign_body(mail, message)
-          return assign_single_body(mail, message) unless message.html_body && message.text_body
+          if message.html_body && message.text_body
+            assign_alternative_body(mail, message)
+          elsif message.attachments.any?
+            # A single body must be added as a part rather than via #content_type,
+            # otherwise Mail pins the message as non-multipart and silently drops
+            # the body once the attachment is added.
+            mail.add_part(single_body_part(message))
+          else
+            assign_single_body(mail, message)
+          end
+        end
 
+        def assign_alternative_body(mail, message)
           # When attachments are present, the bodies must be wrapped in their own
           # multipart/alternative part so Mail produces the correct nested structure:
           # multipart/mixed > [multipart/alternative > [text, html], attachment].
@@ -95,6 +106,14 @@ module Hanami
           else
             mail.text_part = body_part("text/plain", message.text_body, message.charset)
             mail.html_part = body_part("text/html", message.html_body, message.charset)
+          end
+        end
+
+        def single_body_part(message)
+          if message.html_body
+            body_part("text/html", message.html_body, message.charset)
+          else
+            body_part("text/plain", message.text_body, message.charset)
           end
         end
 
