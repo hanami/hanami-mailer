@@ -91,7 +91,7 @@ module Hanami
           # Assigning html_part/text_part directly would leave a flat
           # multipart/alternative with the attachments as siblings of the bodies.
           if message.attachments.any?
-            mail.add_part(alternative_part(message))
+            mail.add_part(alternative_body_part(message))
           else
             mail.text_part = body_part("text/plain", message.text_body, message.charset)
             mail.html_part = body_part("text/html", message.html_body, message.charset)
@@ -108,7 +108,7 @@ module Hanami
           end
         end
 
-        def alternative_part(message)
+        def alternative_body_part(message)
           Mail::Part.new.tap do |part|
             part.content_type "multipart/alternative"
             part.text_part = body_part("text/plain", message.text_body, message.charset)
