@@ -86,10 +86,7 @@ module Hanami
           if message.html_body && message.text_body
             assign_alternative_body(mail, message)
           elsif message.attachments.any?
-            # A single body must be added as a part rather than via #content_type,
-            # otherwise Mail pins the message as non-multipart and silently drops
-            # the body once the attachment is added.
-            mail.add_part(single_body_part(message))
+            assign_single_body_part(mail, message)
           else
             assign_single_body(mail, message)
           end
@@ -109,12 +106,11 @@ module Hanami
           end
         end
 
-        def single_body_part(message)
-          if message.html_body
-            body_part("text/html", message.html_body, message.charset)
-          else
-            body_part("text/plain", message.text_body, message.charset)
-          end
+        def assign_single_body_part(mail, message)
+          # A single body must be added as a part rather than via #content_type,
+          # otherwise Mail pins the message as non-multipart and silently drops
+          # the body once the attachment is added.
+          mail.add_part(single_body_part(message))
         end
 
         def assign_single_body(mail, message)
@@ -132,6 +128,14 @@ module Hanami
             part.content_type "multipart/alternative"
             part.text_part = body_part("text/plain", message.text_body, message.charset)
             part.html_part = body_part("text/html", message.html_body, message.charset)
+          end
+        end
+
+        def single_body_part(message)
+          if message.html_body
+            body_part("text/html", message.html_body, message.charset)
+          else
+            body_part("text/plain", message.text_body, message.charset)
           end
         end
 
