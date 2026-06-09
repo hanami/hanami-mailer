@@ -37,34 +37,4 @@ RSpec.describe Hanami::Mailer::Delivery::Result do
       end
     end
   end
-
-  describe ".new" do
-    context "when success: contradicts the presence of error" do
-      it "raises when success is true but an error is given" do
-        expect {
-          described_class.new(message: message, success: true, error: StandardError.new("boom"))
-        }.to raise_error(ArgumentError, /inconsistent/)
-      end
-
-      it "raises when success is false but no error is given" do
-        expect {
-          described_class.new(message: message, success: false, error: nil)
-        }.to raise_error(ArgumentError, /inconsistent/)
-      end
-    end
-
-    context "when success: is consistent with error" do
-      it "accepts success: false with an error" do
-        result = described_class.new(message: message, success: false, error: StandardError.new("boom"))
-
-        expect(result.failure?).to be true
-      end
-
-      it "accepts success: true with no error" do
-        result = described_class.new(message: message, success: true, error: nil)
-
-        expect(result.success?).to be true
-      end
-    end
-  end
 end

@@ -37,7 +37,6 @@ module Hanami
           Result.new(
             message: message,
             response: mail,
-            success: delivery_exception.nil?,
             error: delivery_exception
           )
         end

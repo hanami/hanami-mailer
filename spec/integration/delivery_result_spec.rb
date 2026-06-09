@@ -162,7 +162,6 @@ RSpec.describe "Delivery results" do
 
           result_class.new(
             message: message,
-            success: false,
             error: error,
             error_code: 429
           )
