@@ -44,8 +44,6 @@ module Hanami
 
         private
 
-        # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
-
         # Convert a Hanami::Mailer::Message to a Mail::Message
         #
         # @param message [Message] the message to convert
@@ -53,6 +51,14 @@ module Hanami
         def to_mail(message)
           require "mail"
 
+          mail = build_mail(message)
+          assign_body(mail, message)
+          add_attachments(mail, message)
+
+          mail
+        end
+
+        def build_mail(message)
           # Use local variables to avoid shadowing Mail DSL methods
           from_addr = message.from
           to_addr = message.to
@@ -63,45 +69,84 @@ module Hanami
           subject_text = message.subject
           charset_value = message.charset
 
-          mail = Mail.new do
+          Mail.new do
             from from_addr
             to to_addr if to_addr
             cc cc_addr if cc_addr
             bcc bcc_addr if bcc_addr
             reply_to reply_to_addr if reply_to_addr
+            return_path return_path_addr if return_path_addr
             subject subject_text
+            self.charset = charset_value
+            message.headers.each { |key, value| self[key] = value }
           end
+        end
 
-          # Set return_path separately as it's not part of the Mail DSL block
-          mail.return_path = return_path_addr if return_path_addr
-
-          mail.charset = charset_value
-
-          # Add custom headers
-          message.headers.each do |key, value|
-            mail[key] = value
-          end
-
-          # Set body content
+        def assign_body(mail, message)
           if message.html_body && message.text_body
-            mail.html_part = Mail::Part.new do
-              content_type "text/html; charset=#{charset_value}"
-              body message.html_body
-            end
+            assign_alternative_body(mail, message)
+          elsif message.attachments.any?
+            assign_single_body_part(mail, message)
+          else
+            assign_single_body(mail, message)
+          end
+        end
 
-            mail.text_part = Mail::Part.new do
-              content_type "text/plain; charset=#{charset_value}"
-              body message.text_body
-            end
-          elsif message.html_body
-            mail.content_type "text/html; charset=#{charset_value}"
+        def assign_alternative_body(mail, message)
+          # When attachments are present, the bodies must be wrapped in their own
+          # multipart/alternative part so Mail produces the correct nested structure:
+          # multipart/mixed > [multipart/alternative > [text, html], attachment].
+          # Assigning html_part/text_part directly would leave a flat
+          # multipart/alternative with the attachments as siblings of the bodies.
+          if message.attachments.any?
+            mail.add_part(alternative_body_part(message))
+          else
+            mail.text_part = body_part("text/plain", message.text_body, message.charset)
+            mail.html_part = body_part("text/html", message.html_body, message.charset)
+          end
+        end
+
+        def assign_single_body_part(mail, message)
+          # A single body must be added as a part rather than via #content_type,
+          # otherwise Mail pins the message as non-multipart and silently drops
+          # the body once the attachment is added.
+          mail.add_part(single_body_part(message))
+        end
+
+        def assign_single_body(mail, message)
+          if message.html_body
+            mail.content_type "text/html; charset=#{message.charset}"
             mail.body = message.html_body
           elsif message.text_body
-            mail.content_type "text/plain; charset=#{charset_value}"
+            mail.content_type "text/plain; charset=#{message.charset}"
             mail.body = message.text_body
           end
+        end
 
-          # Add attachments
+        def alternative_body_part(message)
+          Mail::Part.new.tap do |part|
+            part.content_type "multipart/alternative"
+            part.text_part = body_part("text/plain", message.text_body, message.charset)
+            part.html_part = body_part("text/html", message.html_body, message.charset)
+          end
+        end
+
+        def single_body_part(message)
+          if message.html_body
+            body_part("text/html", message.html_body, message.charset)
+          else
+            body_part("text/plain", message.text_body, message.charset)
+          end
+        end
+
+        def body_part(mime_type, content, charset)
+          Mail::Part.new do
+            content_type "#{mime_type}; charset=#{charset}"
+            body content
+          end
+        end
+
+        def add_attachments(mail, message)
           message.attachments.each do |attachment|
             if attachment.inline?
               mail.attachments.inline[attachment.filename] = {
@@ -116,10 +161,7 @@ module Hanami
               }
             end
           end
-
-          mail
         end
-        # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
       end
     end
   end
