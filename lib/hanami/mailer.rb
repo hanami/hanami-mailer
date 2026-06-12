@@ -127,10 +127,45 @@ module Hanami
         @headers ||= DSL::Exposures.new
       end
 
-      # Define template data exposures
+      # Defines one or more values to expose to the template.
       #
-      # @param names [Array<Symbol>] exposure names
-      # @param proc [Proc] optional block for computing the value
+      # An exposure's value comes from the first of these that applies:
+      #
+      # 1. The given block (single name only).
+      # 2. An instance method matching the name.
+      # 3. The matching key in the input given to {#call}, or the `:default`
+      #    option if the input has no such key.
+      #
+      # When a block or method provides the value, its parameters determine what
+      # it receives:
+      #
+      # - Positional parameters receive other exposures' values, matched by name.
+      # - Keyword parameters receive matching keys from the input. Give them
+      #   defaults to make those input keys optional.
+      # - A keyword splat (`**input`) receives the entire input.
+      #
+      # Pass several names to expose multiple values at once; the options then
+      # apply to every named exposure. A block may only be given for a single
+      # name.
+      #
+      # @example A value computed by a block
+      #   expose :greeting do |user:|
+      #     "Hello, #{user.name}"
+      #   end
+      #
+      # @example A value from a matching instance method, or passed through from the input
+      #   expose :user
+      #
+      # @example Multiple values passed through from the input
+      #   expose :user, :order
+      #
+      # @param names [Array<Symbol>] the exposure names
+      # @param options [Hash] options applied to the exposure(s)
+      # @option options [Object] :default value to use when the input has no
+      #   matching key (pass-through exposures only)
+      # @option options [Boolean] :private exclude from the template, exposing
+      #   the value only to other exposures (defaults to false)
+      # @param block [Proc] block computing the value (single name only)
       #
       # @api public
       def expose(*names, **options, &block)
