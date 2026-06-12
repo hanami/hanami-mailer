@@ -184,12 +184,14 @@ module Hanami
 
               self.config.template = view_template if view_template
 
+              # Exposures are evaluated once, by the mailer, which passes their values to the view.
+              # The view only needs to pass each value through to the template (decorating it as
+              # required), so the procs are dropped here. Private exposures are internal to the
+              # mailer's evaluation and are not passed to the view at all.
               view_exposures.each do |name, exposure|
-                if exposure.proc
-                  expose(name, **exposure.options, &exposure.proc)
-                else
-                  expose(name, **exposure.options)
-                end
+                next if exposure.private?
+
+                expose(name, **exposure.options)
               end
             end
 

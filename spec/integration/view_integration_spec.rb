@@ -142,6 +142,44 @@ RSpec.describe "View integration" do
       end
     end
 
+    describe "private exposures" do
+      before do
+        write "receipt_mailer.html.erb", "<p>Total: <%= total %></p>"
+      end
+
+      let(:mailer_class) {
+        dir = templates_dir
+        Class.new(Hanami::Mailer) {
+          config.paths = [dir]
+          config.template = "receipt_mailer"
+
+          from "noreply@example.com"
+          to "user@example.com"
+          subject "Receipt"
+
+          expose :total do |subtotal|
+            subtotal + 5
+          end
+
+          private_expose :subtotal do |items:|
+            items.sum
+          end
+        }
+      }
+
+      it "exposes the value to other exposures but not to the template" do
+        result = mailer.deliver(items: [3, 7])
+
+        expect(result.message.html_body).to include("Total: 15")
+      end
+
+      it "is not passed to the template" do
+        write "receipt_mailer.html.erb", "<p><%= subtotal %></p>"
+
+        expect { mailer.deliver(items: [3, 7]) }.to raise_error(NameError)
+      end
+    end
+
     describe "template inference" do
       before do
         write "mailers/notification_mailer.html.erb", "<p>Notification content</p>"
@@ -358,6 +396,37 @@ RSpec.describe "View integration" do
 
       expect(result.message.html_body).to eq("<h1>Hello, Alice!</h1>")
       expect(result.message.text_body).to eq("Hello, Alice!")
+    end
+
+    context "with computed and private exposures" do
+      let(:view) {
+        Class.new {
+          def call(format:, **input)
+            "greeting=#{input[:greeting]} secret=#{input[:secret].inspect}"
+          end
+        }.new
+      }
+
+      let(:mailer_class) {
+        Class.new(Hanami::Mailer) {
+          from "noreply@example.com"
+          to "user@example.com"
+          subject "Custom view email"
+
+          expose :greeting do |name:|
+            "Hello #{name}"
+          end
+          private_expose :secret
+        }
+      }
+
+      it "passes evaluated exposures, not raw input, to the injected view" do
+        result = mailer.deliver(name: "Alice", secret: "shh")
+
+        # The computed exposure is evaluated, and the private exposure is withheld, even though the
+        # injected view does not evaluate exposures itself.
+        expect(result.message.html_body).to eq("greeting=Hello Alice secret=nil")
+      end
     end
   end
 

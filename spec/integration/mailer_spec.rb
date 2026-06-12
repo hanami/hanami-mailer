@@ -67,8 +67,8 @@ RSpec.describe "Basic mail delivery" do
     let(:mailer_class) {
       Class.new(Hanami::Mailer) {
         from "noreply@example.com"
-        to { |recipient_email:| recipient_email }
-        subject { |greeting:, recipient_name:| "#{greeting}, #{recipient_name}!" }
+        to { |recipient_email| recipient_email }
+        subject { |greeting, recipient_name| "#{greeting}, #{recipient_name}!" }
 
         expose :user
         expose :recipient_name do |user:|

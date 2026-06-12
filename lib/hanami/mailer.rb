@@ -89,9 +89,12 @@ module Hanami
       # Can be called with:
       # - A static value: `header :from, "noreply@example.com"`
       # - A static value with proper casing: `header "X-Priority", "1"`
-      # - A proc/block: `header(:to) { |user_email:| user_email }`
+      # - A proc/block: `header(:to) { |recipient| recipient[:email] }`
       #
-      # Procs receive keyword arguments from the merged input and exposures context.
+      # A block's parameters follow the same convention as everywhere in the mailer:
+      #
+      # - Positional parameters receive exposure values, matched by name.
+      # - Keyword parameters receive matching keys from the `deliver` input.
       #
       # Header names:
       # - Symbols with underscores (e.g., :x_priority) are converted to Title-Case (X-Priority)
@@ -111,9 +114,10 @@ module Hanami
       #
       # Each method can be called with:
       # - A static value: `from "noreply@example.com"`
-      # - A proc/block: `to { |user_email:| user_email }`
+      # - A proc/block: `to { |recipient| recipient[:email] }`
       #
-      # Procs receive keyword arguments from the merged input and exposures context.
+      # As with {#header}, a block's positional parameters receive exposure values and its keyword
+      # parameters receive matching keys from the `deliver` input.
       #
       # @api public
       STANDARD_HEADERS.each do |field_name|
@@ -163,8 +167,9 @@ module Hanami
       # @param options [Hash] options applied to the exposure(s)
       # @option options [Object] :default value to use when the input has no
       #   matching key (pass-through exposures only)
-      # @option options [Boolean] :private exclude from the template, exposing
-      #   the value only to other exposures (defaults to false)
+      # @option options [Boolean] :private withhold from the view, while keeping
+      #   the value available as a dependency to other exposures, headers,
+      #   attachments, and delivery options (defaults to false)
       # @param block [Proc] block computing the value (single name only)
       #
       # @api public
@@ -176,12 +181,29 @@ module Hanami
         end
       end
 
+      # Defines one or more private exposures.
+      #
+      # A private exposure is computed and stays available as a dependency to other exposures, and
+      # to the mailer's headers, attachments, and delivery options, but is never passed to the view
+      # for rendering. This is a shorthand for `expose(..., private: true)`.
+      #
+      # @see #expose
+      #
+      # @api public
+      def private_expose(*names, **options, &block)
+        expose(*names, **options, private: true, &block)
+      end
+
       # @api private
       def exposures
         @exposures ||= DSL::Exposures.new
       end
 
       # Define an attachment
+      #
+      # An attachment block returns one or more attachment objects (use the {#file} helper). As with
+      # {#header}, its positional parameters receive exposure values and its keyword parameters
+      # receive matching keys from the `deliver` input.
       #
       # @param name_or_filename [Symbol, String] method name or static filename
       # @param proc [Proc] optional block for computing attachment
@@ -202,6 +224,9 @@ module Hanami
       # to customize how a message is sent. For example, a third-party email service
       # might support scheduled sending, priority levels, or tracking options.
       #
+      # As with {#header}, a block's positional parameters receive exposure values and its keyword
+      # parameters receive matching keys from the `deliver` input.
+      #
       # @param name [Symbol] the option name
       # @param value [Object, nil] optional static value
       # @param block [Proc] optional block for computing the value
@@ -211,9 +236,14 @@ module Hanami
       # @example Static value
       #   delivery_option :track_opens, true
       #
-      # @example Dynamic value with block
+      # @example Value computed from the input (keyword parameter)
       #   delivery_option :send_at do |scheduled_time:|
       #     scheduled_time
+      #   end
+      #
+      # @example Value computed from an exposure (positional parameter)
+      #   delivery_option :priority do |user_type|
+      #     user_type == "premium" ? "high" : "normal"
       #   end
       def delivery_option(name, value = nil, &block)
         delivery_options.add(name, block, default: value)
@@ -277,38 +307,37 @@ module Hanami
     #
     # @api public
     def prepare(headers: {}, attachments: nil, format: nil, **input)
-      # Collect header overrides
-      header_overrides = headers.compact
-
-      # Evaluate exposures
+      # Evaluate exposures as our "locals". These will be provided as the _depdenencies_ (available
+      # via positional params) to all our other class-level exposure-like APIs: headers,
+      # attachments, and delivery options.
       locals = self.class.exposures.bind(self).call(input)
 
-      # Merge input with evaluated locals for use in header evaluation
-      context = input.merge(locals)
+      # Evaluate class-level headers, giving precdence to headers given as explicit arguments.
+      header_overrides = headers.compact
+      headers = self.class.headers
+        .bind(self)
+        .call(input, dependencies: locals)
+        .merge(header_overrides)
 
-      # Evaluate headers (from, to, cc, bcc, reply_to, return_path, subject, and custom headers)
-      headers = self.class.headers.bind(self).call(context)
+      # Extract custom headers and normalize their header names to proper casing.
+      custom_headers = headers
+        .reject { |key, _| STANDARD_HEADERS.include?(key) }
+        .transform_keys { |key| normalize_header_name(key) }
 
-      # Merge with overrides, giving precedence to explicit arguments
-      headers = headers.merge(header_overrides)
+      # Render bodies. Private exposures are available to the methods above as dependencies, but are
+      # withheld from the view.
+      html_body, text_body = render(self.class.exposures.reject_private(locals), format:)
 
-      # Separate standard headers from custom headers
-      custom_headers = headers.reject { |key, _| STANDARD_HEADERS.include?(key) }
-
-      # Normalize custom header names to proper casing
-      normalized_custom_headers = custom_headers.transform_keys { |key| normalize_header_name(key) }
-
-      # Render body
-      html_body, text_body = render(input, format:)
-
-      # Evaluate class-level attachments and merge with runtime attachments
+      # Evaluate class-level attachments and merge with runtime attachments.
       runtime_attachments = attachments
       attachments = self.class.attachments
-        .bind(self, context)
+        .bind(self)
+        .call(input, dependencies: locals)
         .concat(runtime_attachments)
         .to_a
 
-      delivery_options = self.class.delivery_options.bind(self).call(context)
+      # Evaluate delivery options.
+      delivery_options = self.class.delivery_options.bind(self).call(input, dependencies: locals)
 
       # Build message
       Message.new(
@@ -322,7 +351,7 @@ module Hanami
         html_body:,
         text_body:,
         attachments: attachments,
-        headers: normalized_custom_headers,
+        headers: custom_headers,
         delivery_options:
       )
     end
