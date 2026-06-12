@@ -169,11 +169,12 @@ RSpec.describe "Headers" do
           user[:vip] ? "high" : "normal"
         end
 
-        header(:x_priority) do |priority_level:|
+        # Positional parameters resolve exposures; `user` and `priority_level` are both exposures.
+        header(:x_priority) do |priority_level|
           priority_level == "high" ? "1" : "3"
         end
 
-        header(:x_user_tier) do |user:|
+        header(:x_user_tier) do |user|
           user[:vip] ? "premium" : "standard"
         end
       }
@@ -187,6 +188,55 @@ RSpec.describe "Headers" do
       result = mailer.deliver(user: {name: "Bob", vip: false})
       expect(result.message.headers["X-Priority"]).to eq("3")
       expect(result.message.headers["X-User-Tier"]).to eq("standard")
+    end
+  end
+
+  describe "separating input from exposures" do
+    let(:mailer_class) {
+      Class.new(Hanami::Mailer) {
+        from "noreply@example.com"
+        to "user@example.com"
+        subject "Test"
+
+        # An exposure that transforms the like-named input, so the two are distinguishable.
+        expose :name do |name:|
+          name.upcase
+        end
+
+        # Keyword parameters read the raw input; positional parameters read the exposure.
+        header(:x_from_input) { |name:| name }
+        header(:x_from_exposure) { |name| name }
+      }
+    }
+
+    it "reads input via keyword parameters and exposures via positional parameters" do
+      result = mailer.deliver(name: "alice")
+
+      expect(result.message.headers["X-From-Input"]).to eq("alice")
+      expect(result.message.headers["X-From-Exposure"]).to eq("ALICE")
+    end
+  end
+
+  describe "depending on private exposures" do
+    let(:mailer_class) {
+      Class.new(Hanami::Mailer) {
+        from "noreply@example.com"
+        to "user@example.com"
+        subject "Test"
+
+        # Private exposures are withheld from the view, but remain available to headers.
+        private_expose :full_name do |first_name:, last_name:|
+          "#{first_name} #{last_name}"
+        end
+
+        header(:x_name) { |full_name| full_name }
+      }
+    }
+
+    it "resolves private exposures as positional dependencies" do
+      result = mailer.deliver(first_name: "Ada", last_name: "Lovelace")
+
+      expect(result.message.headers["X-Name"]).to eq("Ada Lovelace")
     end
   end
 

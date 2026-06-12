@@ -121,7 +121,8 @@ RSpec.describe "Delivery options" do
           user[:premium] ? "premium" : "standard"
         end
 
-        delivery_option :priority do |user_type:|
+        # Depend on the `user_type` exposure
+        delivery_option :priority do |user_type|
           user_type == "premium" ? "high" : "normal"
         end
       end

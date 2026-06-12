@@ -207,7 +207,7 @@ RSpec.describe Hanami::Mailer::DSL::Exposures do
     end
 
     describe "private exposures" do
-      it "removes private exposures from result" do
+      it "includes private exposures in the result" do
         exposures = described_class.new
         exposures.add(:user)
         exposures.add(:internal, nil, private: true)
@@ -219,10 +219,10 @@ RSpec.describe Hanami::Mailer::DSL::Exposures do
 
         expect(result.key?(:user)).to be true
         expect(result.key?(:derived)).to be true
-        expect(result.key?(:internal)).to be false
+        expect(result.key?(:internal)).to be true
       end
 
-      it "still allows private exposures as dependencies" do
+      it "allows private exposures as dependencies" do
         exposures = described_class.new
         exposures.add(:multiplier, nil, private: true)
         exposures.add(:value)
@@ -232,8 +232,19 @@ RSpec.describe Hanami::Mailer::DSL::Exposures do
         bound = exposures.bind(context)
         result = bound.call({multiplier: 3, value: 10})
 
-        expect(result).to eq({value: 10, result: 30})
-        expect(result.key?(:multiplier)).to be false
+        expect(result).to eq({multiplier: 3, value: 10, result: 30})
+      end
+    end
+
+    describe "#reject_private" do
+      it "removes private exposures from a values hash, leaving the rest" do
+        exposures = described_class.new
+        exposures.add(:user)
+        exposures.add(:internal, nil, private: true)
+
+        result = exposures.reject_private({user: "Alice", internal: "secret"})
+
+        expect(result).to eq({user: "Alice"})
       end
     end
 

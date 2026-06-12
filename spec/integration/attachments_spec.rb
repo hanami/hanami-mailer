@@ -54,6 +54,33 @@ RSpec.describe "Attachments" do
       end
     end
 
+    describe "depending on exposures" do
+      let(:mailer_class) do
+        Class.new(Hanami::Mailer) do
+          from "noreply@example.com"
+          to "user@example.com"
+          subject "Invoice"
+
+          expose :reference do |invoice_number:|
+            "INV-#{invoice_number}"
+          end
+
+          # A positional parameter resolves the `reference` exposure.
+          attachment do |reference|
+            file("#{reference}.pdf", "PDF content for #{reference}")
+          end
+        end
+      end
+
+      it "resolves positional parameters against exposures" do
+        result = mailer.deliver(invoice_number: 12_345)
+
+        attachment = result.message.attachments.first
+        expect(attachment.filename).to eq("INV-12345.pdf")
+        expect(attachment.content).to eq("PDF content for INV-12345")
+      end
+    end
+
     describe "multiple attachments" do
       let(:mailer_class) do
         Class.new(Hanami::Mailer) do

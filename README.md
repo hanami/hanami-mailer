@@ -73,9 +73,12 @@ A mailer has two body formats, `:html` and `:text`, each rendered from its own t
 Both HTML and text formats are rendered by default, producing a multipart email. Pass `format: :html` or `format: :text` to `#deliver` or `#prepare` to render a single format only.
 
 Without Hanami View, mailers still send mail — you just supply the bodies yourself (see [Custom rendering without Hanami View](#custom-rendering-without-hanami-view)).
+
 ### Dynamic headers and exposures
 
-Use header methods with blocks to compute headers dynamically based on input data. Use `expose` to prepare values for rendering via the view template (when Hanami View is available).
+Use header methods with blocks to compute headers dynamically based on input data.
+
+Use `expose` to prepare values and make them available to your headers, attachments, and delivery options, and when Hanami View is available, your view templates for rendering.
 
 ```ruby
 class UserMailer < Hanami::Mailer
@@ -106,13 +109,50 @@ The HTML and text bodies come from these templates.
 Hello, <%= user[:name] %>!
 ```
 
-Exposures and header methods both support:
+`expose` comes in a few forms:
 
-- Simple value passing: `expose :user`
-- Computed values with blocks: `expose(:total) { |order:| order[:items].sum { |item| item[:price] } }`
-- Dependencies on other exposures: `expose(:greeting) { |user:| "Hello, #{user[:name]}!" }`
-- Default values: `expose :greeting, default: "Hello"`
-- Private exposures (available to other exposures but not to templates): `expose :raw_data, private: true`
+```ruby
+# A value passed straight through from the input.
+expose :user
+
+# A value computed by a block.
+expose(:greeting) { |customer:| "Hello, #{customer[:name]}!" }
+
+# A default for optional input.
+expose :greeting, default: "Hello"
+
+# A private value: available to other exposures, headers, attachments, and delivery options, but
+# never passed to the view for rendering.
+private_expose :full_name do |first_name:, last_name:|
+  "#{first_name} #{last_name}"
+end
+```
+
+### Accessing input and exposures in blocks
+
+Mailer class methods receiving blocks (`expose`, as well as the header methods, `attachment`, and `delivery_option`) follow one rule for their parameters:
+
+- **Keyword parameters** receive matching keys from the `deliver` input. Give them defaults to make those keys optional.
+- **Positional parameters** receive exposure values, matched by name.
+
+```ruby
+class OrderMailer < Hanami::Mailer
+  from "orders@example.com"
+
+  # `customer:` comes from the same keyword arg given to `#deliver`
+  to { |customer:| customer[:email] }
+
+  # `customer:` comes from the input; `greeting` becomes an exposure
+  expose :greeting do |customer:|
+    "Hello, #{customer[:name]}!"
+  end
+
+  # `greeting` receives the value from the `:greeting` exposure above
+  subject { |greeting| greeting }
+end
+
+OrderMailer.new.deliver(customer: {name: "Alice", email: "alice@example.com"})
+```
 
 ### Standard and custom email headers
 
@@ -199,7 +239,7 @@ If a file cannot be found in any of the configured paths, a `MissingAttachmentEr
 
 ### Dynamic attachments
 
-Return one or more attachments from an `attachment` block, which processes arguments in the same way as `expose` and `header`. Use the `file` helper to create attachment objects.
+Return one or more attachments from an `attachment` block, whose parameters work [like every other block](#accessing-input-and-exposures-in-blocks). Use the `file` helper to create attachment objects.
 
 ```ruby
 class ReportMailer < Hanami::Mailer
@@ -338,7 +378,7 @@ mailer.deliver(
 
 ### Delivery options
 
-Delivery options are delivery-method-specific parameters that customize how a message is sent. They are evaluated the same way as headers and exposures, then passed through to the delivery method on the `Message` object.
+Delivery options are delivery-method-specific parameters that customize how a message is sent. Their blocks receive arguments [like every other block](#accessing-input-and-exposures-in-blocks), and the resulting options are passed through to the delivery method on the `Message` object.
 
 A third-party email service might use these for scheduled sending, priority levels, or tracking.
 
@@ -584,4 +624,3 @@ If Hanami View is installed but you don't want mailers building a view from it a
 ## License
 
 See `LICENSE` file.
-

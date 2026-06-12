@@ -60,27 +60,41 @@ module Hanami
           copy
         end
 
-        def call(input)
-          # Avoid performance cost of tsorting when we don't need it
-          names = dependencies? ? tsort : exposures.keys
+        # Evaluates each exposure and returns a hash of their values.
+        #
+        # By default each exposure's positional parameters resolve against its sibling exposures in
+        # this collection (the values accumulate as the collection is evaluated, ordered by tsort).
+        #
+        # When `dependencies` is given, positional parameters resolve against those instead, and no
+        # sibling resolution (or tsort) takes place. This is how the mailer collections like headers
+        # and delivery options consume the mailer's exposures as their one shared dependency graph.
+        def call(input, dependencies: nil)
+          ordered_evaluation_keys(dependencies).each_with_object({}) { |name, memo|
+            next unless (exposure = self[name])
 
-          names
-            .each_with_object({}) { |name, memo|
-              next unless (exposure = self[name])
+            value = exposure.(input, dependencies || memo)
+            value = yield(value, exposure) if block_given?
 
-              value = exposure.(input, memo)
-              value = yield(value, exposure) if block_given?
+            memo[name] = value
+          }
+        end
 
-              memo[name] = value
-            }
-            .tap { |hsh|
-              names.each do |key|
-                hsh.delete(key) if self[key].private?
-              end
-            }
+        # Removes private exposures from a hash of evaluated values.
+        #
+        # Private exposures are computed and stay available as positional dependencies — to other
+        # exposures, and to the mailer's headers, attachments, and delivery options — but they are
+        # never passed to the view for rendering. This filters them out for that final step.
+        def reject_private(values)
+          values.reject { |name, _| self[name]&.private? }
         end
 
         private
+
+        # With external dependencies, there are no sibling dependencies to order, so tsort is only
+        # needed when resolving siblings within our own collection.
+        def ordered_evaluation_keys(dependencies)
+          dependencies.nil? && dependencies? ? tsort : exposures.keys
+        end
 
         def dependencies? = @has_dependencies
 

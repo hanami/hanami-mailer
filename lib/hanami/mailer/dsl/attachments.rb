@@ -9,8 +9,8 @@ module Hanami
       class Attachments
         attr_reader :definitions
 
-        def initialize
-          @definitions = []
+        def initialize(definitions = [])
+          @definitions = definitions
         end
 
         private def initialize_copy(source)
@@ -22,10 +22,17 @@ module Hanami
           definitions << Attachment.new(name_or_filename, proc, **options)
         end
 
-        # Binds all definitions to a mailer instance and evaluates them, returning an
-        # {AttachmentSet} of {Attachment} instances.
-        def bind(obj, input)
-          attachments = definitions.flat_map { |definition| definition.bind(obj).call(input) }
+        # Returns a copy with every definition bound to the mailer instance.
+        def bind(obj)
+          self.class.new(definitions.map { |definition| definition.bind(obj) })
+        end
+
+        # Evaluates the bound definitions, returning an {AttachmentSet} of {Attachment} instances.
+        #
+        # Each definition's positional parameters resolve against `dependencies` (the mailer's
+        # exposure values); its keyword parameters resolve against `input` (the raw `deliver` input).
+        def call(input, dependencies: {})
+          attachments = definitions.flat_map { |definition| definition.call(input, dependencies) }
 
           AttachmentSet.new(attachments)
         end
@@ -65,11 +72,20 @@ module Hanami
         end
 
         # Evaluates the attachment definition and returns an array of Attachment objects.
-        def call(input)
-          Array(@callable.call(input)).each { ensure_attachment(_1) }
+        #
+        # Positional parameters resolve against `dependencies` (the mailer's exposure values);
+        # keyword parameters resolve against `input`.
+        def call(input, dependencies = {})
+          Array(@callable.call(input, *dependency_args(dependencies))).each { ensure_attachment(_1) }
         end
 
         private
+
+        def dependency_args(dependencies)
+          return [] unless @callable.respond_to?(:dependency_names)
+
+          @callable.dependency_names.map { |name| dependencies.fetch(name) }
+        end
 
         def static_callable
           filename = @name_or_filename
