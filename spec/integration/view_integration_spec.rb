@@ -91,7 +91,15 @@ RSpec.describe "View integration" do
 
     describe "exposures passed to view" do
       before do
-        write "order_mailer.html.erb", "<p>Order #<%= order_id %> for <%= customer_name %></p>"
+        write "order_mailer.html.erb",
+          "<p><%= reference %> — Order #<%= order_id %> for <%= customer.formal_name %></p>"
+
+        # Part used for a decorated exposure
+        stub_const("OrderParts::Customer", Class.new(Hanami::View::Part) {
+          def formal_name
+            "Mx #{value[:name]}"
+          end
+        })
       end
 
       let(:mailer_class) {
@@ -99,21 +107,24 @@ RSpec.describe "View integration" do
         Class.new(Hanami::Mailer) {
           config.paths = [dir]
           config.template = "order_mailer"
+          config.part_namespace = OrderParts
 
           from "noreply@example.com"
           to "user@example.com"
           subject "Order confirmation"
 
           expose :order_id
-          expose :customer_name do |customer:|
-            customer[:name]
+          expose :reference do |order_id:|
+            "REF-#{order_id}"
           end
+          decorate :customer
         }
       }
 
       it "passes all exposures to view" do
         result = mailer.deliver(order_id: 12_345, customer: {name: "Bob"})
 
+        expect(result.message.html_body).to include("REF-12345")
         expect(result.message.html_body).to include("Order #12345")
         expect(result.message.html_body).to include("Bob")
       end
@@ -121,7 +132,13 @@ RSpec.describe "View integration" do
       it "evaluates computed exposures before passing to view" do
         result = mailer.deliver(order_id: 99_999, customer: {name: "Charlie"})
 
-        expect(result.message.html_body).to include("Charlie")
+        expect(result.message.html_body).to include("REF-99999")
+      end
+
+      it "decorates a whole exposed object with a matching view part" do
+        result = mailer.deliver(order_id: 12_345, customer: {name: "Bob"})
+
+        expect(result.message.html_body).to include("Mx Bob")
       end
     end
 
