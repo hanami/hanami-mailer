@@ -3,8 +3,9 @@
 module Hanami
   class Mailer
     # Integration module for Hanami::View support.
-    # This module is included when Hanami::View is available,
-    # providing automatic view building and settings inheritance.
+    #
+    # This module is included when Hanami::View is available, providing automatic view building and
+    # settings inheritance.
     #
     # @api private
     module ViewIntegration
@@ -62,6 +63,15 @@ module Hanami
           return @default_view if defined?(@default_view)
 
           @default_view = config.integrate_view ? DefaultViewBuilder.call(self) : nil
+        end
+
+        # Defines an exposure that will be decorated with a matching view part.
+        #
+        # This is a shorthand for `expose(..., decorate: true)`.
+        #
+        # @see Mailer.expose
+        def decorate(*names, **options, &block)
+          expose(*names, **options, decorate: true, &block)
         end
       end
 
