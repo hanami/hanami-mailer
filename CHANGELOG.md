@@ -21,7 +21,7 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 [Unreleased]: https://github.com/hanami/hanami-mailer/compare/v3.0.0.rc1...main
 
-## [3.0.0.rc1]
+## [3.0.0.rc1] - 2026-06-16
 
 ### Changed
 
