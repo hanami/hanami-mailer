@@ -14,7 +14,7 @@ module Hanami
       #   if result.success?
       #     log.info "Delivered to #{result.message.to.join(', ')}"
       #   else
-      #     log.error "Delivery failed: #{result.error.message}"
+      #     log.error "Delivery failed: #{result.error}"
       #   end
       #
       # @example A third-party delivery method returning a richer result
@@ -48,17 +48,23 @@ module Hanami
         # @api public
         attr_reader :response
 
-        # The exception raised during delivery, if delivery failed.
+        # The error that occurred during delivery, if delivery failed.
         #
-        # @return [Exception, nil]
+        # This is `nil` for a successful delivery. For a failed delivery it is a truthy object
+        # describing the error. This will typically be the exception raised during delivery, but
+        # delivery methods are free to represent failures with any object that responds to `#to_s`,
+        # allowing third-party providers to surface richer error details.
+        #
+        # @return [Object, nil] an object responding to `#to_s`, or nil if delivery succeeded
         #
         # @api public
         attr_reader :error
 
         # @param message [Hanami::Mailer::Message] the prepared message
         # @param response [Object, nil] the raw response from the delivery method
-        # @param error [Exception, nil] the exception raised, if delivery failed. Success is
-        #   derived from its absence.
+        # @param error [Object, nil] the error, if delivery failed: nil, or any truthy object
+        #   responding to `#to_s` (typically the exception raised). Success is derived from its
+        #   absence.
         #
         # @api private
         def initialize(message:, response: nil, error: nil)
