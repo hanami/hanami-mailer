@@ -307,6 +307,55 @@ RSpec.describe "Attachments" do
         end
       end
 
+      context "with a nested filename" do
+        let(:mailer_class) do
+          dir = attachment_dir
+          Class.new(Hanami::Mailer) do
+            from "noreply@example.com"
+            to "user@example.com"
+            subject "Manual"
+
+            config.attachment_paths = [dir]
+
+            attachment "nested/manual.pdf"
+          end
+        end
+
+        it "finds the file via the search path but names the attachment by its basename" do
+          result = mailer.deliver
+
+          expect(result.message.attachments.size).to eq(1)
+
+          attachment = result.message.attachments.first
+          expect(attachment.filename).to eq("manual.pdf")
+          expect(attachment.content).to eq("Nested manual content")
+        end
+      end
+
+      context "with an inline nested filename" do
+        let(:mailer_class) do
+          dir = attachment_dir
+          Class.new(Hanami::Mailer) do
+            from "noreply@example.com"
+            to "user@example.com"
+            subject "Manual"
+
+            config.attachment_paths = [dir]
+
+            attachment "nested/manual.pdf", inline: true
+          end
+        end
+
+        it "uses the basename as the content_id, not the nested path" do
+          result = mailer.deliver
+
+          attachment = result.message.attachments.first
+          expect(attachment.inline?).to be(true)
+          expect(attachment.filename).to eq("manual.pdf")
+          expect(attachment.content_id).to eq("manual.pdf")
+        end
+      end
+
       context "when file is not found in attachment_paths" do
         let(:mailer_class) do
           dir = attachment_dir
