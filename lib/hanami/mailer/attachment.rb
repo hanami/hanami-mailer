@@ -66,7 +66,9 @@ module Hanami
         def from_file(filename, attachment_paths:, inline: false)
           content = read_attachment_file(filename, attachment_paths)
 
-          new(filename:, content:, inline:)
+          # A nested name (e.g. "foo/bar.pdf") is resolved via the search paths, but only its
+          # basename should reach the recipient as the attachment's filename and content-id.
+          new(filename: File.basename(filename), content:, inline:)
         end
 
         private
