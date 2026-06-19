@@ -555,8 +555,17 @@ smtp.call(message)
 
 Delivery methods expose a `preview` hook that returns a prepared message without sending it. The default (and test) delivery method returns the message unchanged; a third-party delivery method can override `preview` to apply service-specific logic, such as resolving a template through a remote API.
 
+Use `#preview` to prepare the message and run it through the delivery method's hook in one step. It takes the same arguments as `#deliver` and `#prepare`:
+
 ```ruby
 mailer = WelcomeMailer.new
+
+preview = mailer.preview(user: {name: "Alice", email: "alice@example.com"})
+```
+
+When you already hold a prepared message, you can call the delivery method's hook directly instead:
+
+```ruby
 message = mailer.prepare(user: {name: "Alice", email: "alice@example.com"})
 
 preview = mailer.delivery_method.preview(message)
