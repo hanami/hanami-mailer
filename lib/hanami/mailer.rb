@@ -294,6 +294,25 @@ module Hanami
       delivery_method.call(message)
     end
 
+    # Previews the email without delivering it
+    #
+    # Builds the message and passes it to the delivery method's `preview` hook, returning whatever
+    # that returns. The default (and test) delivery method returns the message unchanged; a
+    # third-party delivery method can override `preview` to apply service-specific logic.
+    #
+    # @param headers [Hash] optional header overrides (from, to, cc, bcc, reply_to, return_path, subject)
+    # @param attachments [Array<Hash, Attachment>, nil] optional runtime attachments
+    # @param format [Symbol, nil] optional format to render (:html or :text)
+    # @param input [Hash] input data for exposures and rendering
+    #
+    # @return [Message]
+    #
+    # @api public
+    def preview(headers: {}, attachments: nil, format: nil, **input)
+      message = prepare(headers:, attachments:, format:, **input)
+      delivery_method.preview(message)
+    end
+
     # rubocop:disable Metrics/AbcSize
 
     # Build the message without delivering it

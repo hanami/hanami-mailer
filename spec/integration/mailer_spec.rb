@@ -98,6 +98,40 @@ RSpec.describe "Basic mail delivery" do
     end
   end
 
+  describe "#preview" do
+    # A delivery method whose preview hook transforms the message, to demonstrate how #preview
+    # prepares the message and routes it through the hook (rather than just calling #prepare).
+    let(:delivery_method) {
+      Class.new {
+        def preview(message)
+          Hanami::Mailer::Message.new(**message.to_h.merge(subject: "[PREVIEW] #{message.subject}"))
+        end
+      }.new
+    }
+
+    let(:mailer) { mailer_class.new(delivery_method:) }
+
+    let(:mailer_class) {
+      Class.new(Hanami::Mailer) {
+        from "noreply@example.com"
+        to { |user:| user[:email] }
+        subject { |user:| "Welcome, #{user[:name]}!" }
+
+        expose :user
+      }
+    }
+
+    it "prepares the message, forwards its arguments, and runs it through the delivery method's preview hook" do
+      message = mailer.preview(
+        user: {name: "Alice", email: "alice@example.com"},
+        attachments: [Hanami::Mailer.file("note.txt", "hi")]
+      )
+
+      expect(message.subject).to eq "[PREVIEW] Welcome, Alice!"
+      expect(message.attachments.map(&:filename)).to eq ["note.txt"]
+    end
+  end
+
   describe "error handling" do
     describe "missing recipient" do
       let(:mailer_class) {
