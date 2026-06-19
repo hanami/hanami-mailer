@@ -14,7 +14,7 @@ module Hanami
       #   if result.success?
       #     log.info "Delivered to #{result.message.to.join(', ')}"
       #   else
-      #     log.error "Delivery failed: #{result.error.message}"
+      #     log.error "Delivery failed: #{result.error}"
       #   end
       #
       # @example A third-party delivery method returning a richer result
@@ -48,23 +48,27 @@ module Hanami
         # @api public
         attr_reader :response
 
-        # The exception raised during delivery, if delivery failed.
+        # The error that occurred during delivery, if delivery failed.
         #
-        # @return [Exception, nil]
+        # This is `nil` for a successful delivery. For a failed delivery it is a truthy object
+        # describing the error. For {SMTP} deliveries, this will be an exception raised during
+        # delivery, but delivery methods are free to represent failures with any object that
+        # responds to `#to_s`, allowing for objects that carry richer error details.
+        #
+        # @return [#to_s, nil] the error if delivery failed, or nil if it succeeded
         #
         # @api public
         attr_reader :error
 
         # @param message [Hanami::Mailer::Message] the prepared message
         # @param response [Object, nil] the raw response from the delivery method
-        # @param success [Boolean] whether delivery succeeded (default: true)
-        # @param error [Exception, nil] the exception raised, if delivery failed
+        # @param error [#to_s, nil] the error, if delivery failed. The result's success status is
+        #   derived from its absence.
         #
         # @api private
-        def initialize(message:, response: nil, success: true, error: nil)
+        def initialize(message:, response: nil, error: nil)
           @message  = message
           @response = response
-          @success  = success
           @error    = error
         end
 
@@ -74,7 +78,16 @@ module Hanami
         #
         # @api public
         def success?
-          @success
+          error.nil?
+        end
+
+        # Returns true if delivery failed.
+        #
+        # @return [Boolean]
+        #
+        # @api public
+        def failure?
+          !success?
         end
       end
     end
