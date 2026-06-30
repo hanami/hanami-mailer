@@ -29,12 +29,14 @@ module Hanami
       #   end
       #
       # @api public
+      # @since 3.0.0
       class Result
         # The prepared message that was (or was attempted to be) delivered.
         #
         # @return [Hanami::Mailer::Message]
         #
         # @api public
+        # @since 3.0.0
         attr_reader :message
 
         # The raw return value from the delivery method, if any.
@@ -46,6 +48,7 @@ module Hanami
         # @return [Object, nil]
         #
         # @api public
+        # @since 3.0.0
         attr_reader :response
 
         # The error that occurred during delivery, if delivery failed.
@@ -58,6 +61,7 @@ module Hanami
         # @return [#to_s, nil] the error if delivery failed, or nil if it succeeded
         #
         # @api public
+        # @since 3.0.0
         attr_reader :error
 
         # @param message [Hanami::Mailer::Message] the prepared message
@@ -77,6 +81,7 @@ module Hanami
         # @return [Boolean]
         #
         # @api public
+        # @since 3.0.0
         def success?
           error.nil?
         end
@@ -86,6 +91,7 @@ module Hanami
         # @return [Boolean]
         #
         # @api public
+        # @since 3.0.0
         def failure?
           !success?
         end

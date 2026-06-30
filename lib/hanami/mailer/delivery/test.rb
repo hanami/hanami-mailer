@@ -6,12 +6,14 @@ module Hanami
       # Test delivery method that stores delivery results in memory
       #
       # @api public
+      # @since 3.0.0
       class Test
         # Returns all delivery results
         #
         # @return [Array<Delivery::Result>]
         #
         # @api public
+        # @since 3.0.0
         def deliveries
           @deliveries ||= []
         end
@@ -19,6 +21,7 @@ module Hanami
         # Clear all delivery results
         #
         # @api public
+        # @since 3.0.0
         def clear
           deliveries.clear
         end
@@ -44,6 +47,7 @@ module Hanami
         # @return [Message]
         #
         # @api public
+        # @since 3.0.0
         def preview(message)
           message
         end

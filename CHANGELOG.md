@@ -19,7 +19,16 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ### Security
 
-[Unreleased]: https://github.com/hanami/hanami-mailer/compare/v3.0.0.rc1...main
+[Unreleased]: https://github.com/hanami/hanami-mailer/compare/v3.0.0...main
+
+## [3.0.0] - 2026-06-30
+
+### Changed
+
+- Rewrite the gem. (@timriley)
+- Require Ruby 3.3 or newer.
+
+[3.0.0]: https://github.com/hanami/hanami-mailer/compare/v1.3.3...v3.0.0
 
 ## [3.0.0.rc1] - 2026-06-16
 

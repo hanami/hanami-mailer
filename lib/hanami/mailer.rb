@@ -9,6 +9,7 @@ module Hanami
   # Base mailer class
   #
   # @api public
+  # @since 3.0.0
   class Mailer
     # @api private
     def self.gem_loader
@@ -35,6 +36,7 @@ module Hanami
 
     # Paths to search for static attachment files
     # @api public
+    # @since 3.0.0
     setting :attachment_paths, default: []
 
     # Include Hanami::View integration if available.
@@ -70,6 +72,7 @@ module Hanami
       # @return [Attachment] attachment object
       #
       # @api public
+      # @since 3.0.0
       #
       # @example
       #   mailer.deliver(
@@ -106,6 +109,7 @@ module Hanami
       # @param block [Proc] optional block for computing the value
       #
       # @api public
+      # @since 3.0.0
       def header(field_name, value = nil, &block)
         headers.add(field_name, block, default: value)
       end
@@ -120,6 +124,7 @@ module Hanami
       # parameters receive matching keys from the `deliver` input.
       #
       # @api public
+      # @since 3.0.0
       STANDARD_HEADERS.each do |field_name|
         define_method(field_name) do |value = nil, &block|
           header(field_name, value, &block)
@@ -173,6 +178,7 @@ module Hanami
       # @param block [Proc] block computing the value (single name only)
       #
       # @api public
+      # @since 3.0.0
       def expose(*names, **options, &block)
         if names.length == 1
           exposures.add(names.first, block, **options)
@@ -190,6 +196,7 @@ module Hanami
       # @see #expose
       #
       # @api public
+      # @since 3.0.0
       def private_expose(*names, **options, &block)
         expose(*names, **options, private: true, &block)
       end
@@ -209,6 +216,7 @@ module Hanami
       # @param proc [Proc] optional block for computing attachment
       #
       # @api public
+      # @since 3.0.0
       def attachment(name_or_filename = nil, **options, &block)
         attachments.add(name_or_filename, block, **options)
       end
@@ -232,6 +240,7 @@ module Hanami
       # @param block [Proc] optional block for computing the value
       #
       # @api public
+      # @since 3.0.0
       #
       # @example Static value
       #   delivery_option :track_opens, true
@@ -274,6 +283,7 @@ module Hanami
     # @param delivery_method [Object] delivery method (defaults to Test delivery)
     #
     # @api public
+    # @since 3.0.0
     def initialize(view: nil, delivery_method: nil)
       @view = view
       @delivery_method = delivery_method || default_delivery_method
@@ -289,6 +299,7 @@ module Hanami
     # @return [Delivery::Result]
     #
     # @api public
+    # @since 3.0.0
     def deliver(headers: {}, attachments: nil, format: nil, **input)
       message = prepare(headers:, attachments:, format:, **input)
       delivery_method.call(message)
@@ -308,6 +319,7 @@ module Hanami
     # @return [Message]
     #
     # @api public
+    # @since 3.0.0
     def preview(headers: {}, attachments: nil, format: nil, **input)
       message = prepare(headers:, attachments:, format:, **input)
       delivery_method.preview(message)
@@ -325,6 +337,7 @@ module Hanami
     # @return [Message]
     #
     # @api public
+    # @since 3.0.0
     def prepare(headers: {}, attachments: nil, format: nil, **input)
       # Evaluate exposures as our "locals". These will be provided as the _depdenencies_ (available
       # via positional params) to all our other class-level exposure-like APIs: headers,
@@ -388,6 +401,7 @@ module Hanami
     # @return [Attachment] attachment object
     #
     # @api public
+    # @since 3.0.0
     #
     # @example
     #   attachment :invoice do |invoice:|

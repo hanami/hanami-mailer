@@ -3,6 +3,7 @@
 module Hanami
   class Mailer
     # @api public
-    VERSION = "3.0.0.rc1"
+    # @since 3.0.0
+    VERSION = "3.0.0"
   end
 end

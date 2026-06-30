@@ -5,6 +5,7 @@ module Hanami
     # Represents an email attachment
     #
     # @api public
+    # @since 3.0.0
     class Attachment
       # Common MIME types for attachments
       #
@@ -101,6 +102,7 @@ module Hanami
       # @raise [ArgumentError] if filename or content is missing
       #
       # @api public
+      # @since 3.0.0
       def initialize(filename:, content:, content_type: nil, inline: false)
         raise ArgumentError, "filename is required" if filename.nil? || (filename.is_a?(String) && filename.empty?)
         raise ArgumentError, "content is required" if content.nil?
@@ -117,6 +119,7 @@ module Hanami
       # @return [Boolean]
       #
       # @api public
+      # @since 3.0.0
       def inline? = @inline
 
       private

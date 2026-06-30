@@ -8,6 +8,7 @@ module Hanami
       # SMTP delivery method
       #
       # @api public
+      # @since 3.0.0
       class SMTP
         # Initialize SMTP delivery with configuration
         #

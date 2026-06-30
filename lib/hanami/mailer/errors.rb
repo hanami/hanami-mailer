@@ -5,12 +5,14 @@ module Hanami
     # Base error class for all Hanami::Mailer errors
     #
     # @api public
+    # @since 3.0.0
     class Error < StandardError
     end
 
     # Raised when a mailer is missing required delivery configuration
     #
     # @api public
+    # @since 3.0.0
     class MissingDeliveryError < Error
       def initialize(message = "Missing delivery method. Configure a delivery method using `config.delivery = ...`")
         super
@@ -20,6 +22,7 @@ module Hanami
     # Raised when a mailer message is missing a sender address
     #
     # @api public
+    # @since 3.0.0
     class MissingSenderError < Error
       def initialize(message = "Missing sender. Provide a `from` address")
         super
@@ -29,6 +32,7 @@ module Hanami
     # Raised when a mailer message is missing required recipient information
     #
     # @api public
+    # @since 3.0.0
     class MissingRecipientError < Error
       def initialize(message = "Missing recipient. Provide at least one of: to, cc, or bcc")
         super
@@ -38,6 +42,7 @@ module Hanami
     # Raised when a static attachment file cannot be found
     #
     # @api public
+    # @since 3.0.0
     class MissingAttachmentError < Error
       def initialize(filename, paths = [])
         message =
@@ -55,6 +60,7 @@ module Hanami
     # Raised when duplicate attachment filenames are detected
     #
     # @api public
+    # @since 3.0.0
     class DuplicateAttachmentError < Error
       def initialize(filename)
         super(
