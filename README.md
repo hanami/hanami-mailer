@@ -2,7 +2,7 @@
 
 [actions]: https://github.com/hanami/hanami-mailer/actions
 [chat]: https://discord.gg/naQApPAsZB
-[forum]: https://discourse.hanamirb.org
+[forum]: https://discourse.hanakai.org
 [rubygem]: https://rubygems.org/gems/hanami-mailer
 
 # hanami-mailer [![Gem Version](https://badge.fury.io/rb/hanami-mailer.svg)][rubygem] [![CI Status](https://github.com/hanami/hanami-mailer/workflows/CI/badge.svg)][actions]
