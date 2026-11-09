@@ -61,6 +61,7 @@ A mailer has two body formats, `:html` and `:text`, each rendered from its own t
 Both HTML and text formats are rendered by default, producing a multipart email. Pass `format: :html` or `format: :text` to `#deliver` or `#prepare` to render a single format only.
 
 Without Hanami View, mailers still send mail — you just supply the bodies yourself (see [Custom rendering without Hanami View](#custom-rendering-without-hanami-view)).
+
 ### Dynamic headers and exposures
 
 Use header methods with blocks to compute headers dynamically based on input data. Use `expose` to prepare values for rendering via the view template (when Hanami View is available).
@@ -526,7 +527,7 @@ class ReportMailer < Hanami::Mailer
 end
 ```
 
-Because template paths are inherited from the configured view class, you typically don't need to set `config.paths` or yourself in this case.
+Because template paths are inherited from the configured view class, you typically don't need to set `config.paths` yourself in this case.
 
 ### Custom rendering without Hanami View
 
