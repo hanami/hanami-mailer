@@ -19,7 +19,13 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ### Security
 
-[Unreleased]: https://github.com/hanami/hanami-mailer/compare/v3.0.0...main
+[Unreleased]: https://github.com/hanami/hanami-mailer/compare/v3.1.0.rc1...main
+
+## [3.1.0.rc1] - 2026-11-27
+
+No changes.
+
+[3.1.0.rc1]: https://github.com/hanami/hanami-mailer/compare/v3.0.0...v3.1.0.rc1
 
 ## [3.0.0] - 2026-06-30
 
